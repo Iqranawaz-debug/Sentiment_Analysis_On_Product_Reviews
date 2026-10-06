@@ -34,7 +34,7 @@ except Exception:
     )
     st.code("python -m pip install -r requirements.txt")
     st.code(
-        "python -m src.train --data data/raw/Amazon_Food_Reviews.csv data/raw/Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products_May19.csv"
+        "python -m src.train --config configs/default.yaml"
     )
     st.info(
         "The app never trains during startup. See README.md for setup and recovery instructions."

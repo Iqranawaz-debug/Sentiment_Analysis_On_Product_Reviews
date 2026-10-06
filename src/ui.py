@@ -1,72 +1,67 @@
-"""Evidence-driven Streamlit views."""
+"""Six evidence-driven views; no fitting or training is imported by the app."""
+
+import json
+import os
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from src.predict import explain_review, export_csv, predict_reviews, read_batch, top_terms
-from src.preprocessing import MAX_REVIEW_CHARS
+from src.explain import explain_review, highlight_review, top_terms
+from src.predict import export_csv, predict_reviews, read_batch
+from src.preprocess import MAX_REVIEW_CHARS
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def single_review(model):
-    st.subheader("Analyze a review")
-    examples = {
-        "Write my own": "",
-        "Positive example": "Excellent quality and easy to use. I would buy it again.",
-        "Mixed example": "It works, but the quality is average for the price.",
-        "Negative example": "It stopped working after two days. I am disappointed.",
-    }
-    choice = st.selectbox("Try an example", list(examples))
+def single_review(model, threshold):
+    st.subheader("What does this review say?")
     text = st.text_area(
         "Review",
-        value=examples[choice],
-        height=150,
+        height=160,
         max_chars=MAX_REVIEW_CHARS,
-        key=f"review_{choice}",
+        placeholder="The design is lovely, but it stopped working after a week.",
     )
     if st.button("Analyze review", type="primary"):
         try:
-            with st.spinner("Analyzing review..."):
-                result = predict_reviews(model, [text]).iloc[0]
+            result = predict_reviews(model, [text], threshold).iloc[0]
             if result.status != "ok":
                 st.warning(
                     "No terms matched the model vocabulary. Try a more detailed English review."
                 )
                 return
             st.success(f"Predicted sentiment: {result.sentiment.title()}")
-            prefix = "probability_" if "model_probability" in result else "margin_"
-            scores = {label: result[f"{prefix}{label}"] for label in model.classes_}
-            if prefix == "probability_":
-                st.metric("Model probability", f"{result.model_probability:.1%}")
-                st.caption(
-                    "Uncalibrated model probabilities are not a guarantee of correctness or a product rating."
+            if result.low_confidence:
+                st.warning("Low confidence: this review needs human interpretation.")
+            st.bar_chart(
+                pd.Series(
+                    {label: result[f"probability_{label}"] for label in model.classes_},
+                    name="Calibrated probability",
                 )
-            else:
-                st.caption(
-                    "Decision margins compare class scores; they are not probabilities or confidence percentages."
-                )
-            st.bar_chart(pd.Series(scores, name="Score"))
-            explanation = explain_review(model, text, result.sentiment)
+            )
+            st.caption(
+                "Calibrated probabilities describe uncertainty; they do not guarantee correctness."
+            )
+            explanation = explain_review(model, text, result.sentiment, limit=30)
             if not explanation.empty:
-                st.markdown("**Words contributing to this class score**")
-                st.bar_chart(explanation.set_index("term"))
+                st.markdown(highlight_review(text, explanation), unsafe_allow_html=True)
                 st.caption(
-                    "TF-IDF × class coefficient. Positive values raise this class score; negative values lower it. The intercept is omitted. This explains a model score, not causality."
+                    "Normalized text: green words support this class score; red words oppose it. Character features appear in the table. Contributions explain the score before calibration, not probability changes or causality."
                 )
+                st.dataframe(explanation, hide_index=True)
         except ValueError as error:
             st.error(str(error))
 
 
-def batch_reviews(model):
-    st.subheader("Batch CSV prediction")
-    st.write(
-        "Upload a UTF-8 CSV with a `review_text` column. Maximum: 1,000 reviews, 5 MB, 20,000 characters per review. Extra columns are ignored."
-    )
+def batch_reviews(model, threshold):
+    st.subheader("Explore a batch of reviews")
+    st.write("Upload a UTF-8 CSV with a `review_text` column. Extra columns are ignored.")
     st.caption(
-        "Reviews are processed in server memory and are not deliberately saved by this app. Avoid uploading sensitive information to a public deployment."
+        "Uploads are processed in memory. Avoid sensitive information on public deployments."
     )
     st.download_button(
         "Download example CSV",
-        b'review_text\n"Great quality and fast delivery."\n"The item broke after one use."\n"It is average for the price."\n',
+        b'review_text\n"Great quality."\n"Not good at all."\n"It is average."\n',
         "example_reviews.csv",
         "text/csv",
     )
@@ -74,13 +69,9 @@ def batch_reviews(model):
     if uploaded is not None:
         try:
             frame = read_batch(uploaded.getvalue())
-            with st.spinner("Predicting batch..."):
-                result = predict_reviews(model, frame.review_text)
+            result = predict_reviews(model, frame.review_text, threshold)
             st.dataframe(result, hide_index=True)
             st.bar_chart(result.sentiment.value_counts().rename("Reviews"))
-            st.caption(
-                "Distribution describes predictions for this upload, not measured customer satisfaction. No-known-term rows are marked unavailable."
-            )
             st.download_button(
                 "Download predictions", export_csv(result), "sentiment_predictions.csv", "text/csv"
             )
@@ -88,128 +79,142 @@ def batch_reviews(model):
             st.error(str(error))
 
 
-def performance(metadata):
-    st.subheader("Model comparison and holdout evaluation")
-    st.write(
-        "Selection uses mean macro F1 from training-only cross-validation. Each class receives equal weight, making neutral and negative performance visible."
-    )
-    comparison = pd.DataFrame(metadata["comparison"])
-    st.bar_chart(comparison.set_index("model")[["cv_macro_f1", "cv_weighted_f1", "cv_accuracy"]])
-    st.dataframe(comparison.drop(columns="best_parameters"), hide_index=True)
+def load_reports(directory, metadata):
+    """Fail closed on stale report/model pairs rather than showing unrelated metrics."""
+    metrics = json.loads((directory / "metrics.json").read_text(encoding="utf-8"))
+    if metrics["artifact_sha256"] != metadata["artifact_sha256"]:
+        raise ValueError("Reports belong to a different model. Restore the matching run.")
+    return metrics
+
+
+def performance(directory, metrics):
+    st.subheader("Measured evidence")
     st.caption(
-        "CV scores include model tuning; they are selection estimates. Standard deviation shows fold variability, not a confidence interval."
+        "Families are compared using fixed settings in training-only CV. The winning family is tuned on validation. Test results are accessed after these choices."
     )
-    holdout = metadata["holdout"]
-    for column, metric in zip(st.columns(3), ["accuracy", "macro_f1", "weighted_f1"]):
-        column.metric(metric.replace("_", " ").title(), f"{holdout[metric]:.3f}")
-    st.write(
-        f"Selected model: **{metadata['selected_model']}**. Holdout: {metadata['test_rows']:,} reviews, evaluated after selection."
+    st.dataframe(pd.read_csv(directory / "comparison.csv"), hide_index=True)
+    for column, metric in zip(st.columns(2), ("accuracy", "macro_f1")):
+        column.metric(f"Test {metric.replace('_', ' ')}", f"{metrics['test'][metric]:.4f}")
+    st.dataframe(pd.DataFrame(metrics["test"]["per_class"]).T)
+    st.markdown("**Domain breakdown**")
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "source": source,
+                    **{key: result[key] for key in ("accuracy", "macro_f1", "support")},
+                }
+                for source, result in metrics["per_source"].items()
+            ]
+        ),
+        hide_index=True,
     )
-    labels = holdout["class_order"]
-    st.markdown("**Confusion matrix — rows: actual; columns: predicted**")
-    matrix = pd.DataFrame(holdout["confusion_matrix"], index=labels, columns=labels)
-    st.dataframe(matrix)
-    report = pd.DataFrame(
+    st.caption(
+        "Source breakdown measures performance within the mixed-data test set; it is not an unseen-domain transfer experiment."
+    )
+    st.markdown("**Validation ablations**")
+    st.dataframe(pd.read_csv(directory / "ablation.csv"), hide_index=True)
+    st.image(str(directory / "figures/confusion_test.png"))
+    st.image(str(directory / "figures/calibration.png"))
+    if metrics.get("transformer"):
+        st.markdown("**Optional transformer experiment**")
+        st.json(metrics["transformer"])
+    st.json(
         {
-            key: value
-            for key, value in holdout["classification_report"].items()
-            if isinstance(value, dict)
+            "split_counts": metrics["split_counts"],
+            "sample_cap": metrics["max_samples"],
+            "data_audit": metrics["data_audit"],
         }
-    ).T
-    st.dataframe(report)
-
-
-def data_view(metadata):
-    st.subheader("Data quality and distribution")
-    audit = metadata["data_audit"]
-    st.write(
-        f"{audit['input_rows']:,} input rows → {audit['clean_rows']:,} usable unique reviews → {metadata['sample_rows']:,} sampled reviews."
     )
-    st.bar_chart(pd.Series(audit["class_distribution"], name="Cleaned full dataset"))
-    st.dataframe(pd.DataFrame(metadata["split_class_distribution"]))
-    st.markdown("**Data quality exclusions**")
-    st.json({key: value for key, value in audit.items() if key.endswith("removed")})
-    st.markdown("**Training review length quantiles (characters)**")
-    st.bar_chart(pd.Series(metadata["training_length_quantiles"], name="Characters"))
+
+
+def errors(directory):
+    st.subheader("Most-confident mistakes")
+    path = directory / "error_analysis.csv"
+    if not path.exists():
+        st.info(
+            "Error samples are generated locally during training and are excluded from Git for review-text privacy."
+        )
+        return
+    frame = pd.read_csv(path)
+    if frame.empty:
+        st.info("No misclassified test reviews in this run.")
+        return
+    actual = st.selectbox("True class", ["All", *sorted(frame.true_label.unique())])
+    predicted = st.selectbox("Predicted class", ["All", *sorted(frame.predicted_label.unique())])
+    confidence = st.slider("Minimum confidence", 0.0, 1.0, 0.0)
+    source = st.selectbox("Source", ["All", *sorted(frame.source.unique())])
+    if actual != "All":
+        frame = frame[frame.true_label == actual]
+    if predicted != "All":
+        frame = frame[frame.predicted_label == predicted]
+    if source != "All":
+        frame = frame[frame.source == source]
+    st.dataframe(frame[frame.confidence >= confidence], hide_index=True)
     st.caption(
-        "Normalized exact duplicates are removed before splitting; all conflicting-label duplicate groups are excluded. Near-duplicate and product/author overlap are not eliminated."
+        "This ranked error sample is deliberately biased toward confident failures; it is not a prevalence estimate."
     )
-    st.dataframe(pd.DataFrame(audit["sources"]), hide_index=True)
 
 
 def render(model, metadata):
-    page = st.sidebar.radio(
-        "Explore",
-        [
-            "Overview",
-            "Single review",
-            "Batch CSV",
-            "Data exploration",
-            "Model performance",
-            "Explainability",
-            "About and model info",
-        ],
-    )
-    st.sidebar.caption(
-        f"Model: {metadata['selected_model']}\n\nEnglish product reviews • Three classes"
-    )
-    if page == "Overview":
-        st.subheader("Turn review text into a clearer feedback picture")
-        st.write(
-            "Classify positive, negative, and neutral product reviews to support feedback triage. Explore the evidence behind the model before relying on its output."
-        )
-        for column, label, value in zip(
-            st.columns(3),
-            ["Training reviews", "Holdout macro F1", "Sentiment classes"],
-            [f"{metadata['train_rows']:,}", f"{metadata['holdout']['macro_f1']:.3f}", "3"],
-        ):
-            column.metric(label, value)
-        st.markdown(
-            "**Start with a single review**, upload a CSV, or inspect model performance using the sidebar."
-        )
-        st.info(
-            "Labels come from star ratings: 1–2 negative, 3 neutral, 4–5 positive. A three-star review may be mixed rather than emotionally neutral."
-        )
-        st.write(
-            "The original university notebook and report remain in the repository. The app uses a separately tested, reproducible training pipeline."
-        )
-    elif page == "Single review":
-        single_review(model)
-    elif page == "Batch CSV":
-        batch_reviews(model)
-    elif page == "Data exploration":
-        data_view(metadata)
-    elif page == "Model performance":
-        performance(metadata)
-    elif page == "Explainability":
-        st.subheader("Terms associated with each sentiment")
+    threshold = metadata.get("low_confidence_threshold", 0.60)
+    directory = Path(os.environ.get("SENTIMENT_REPORTS_DIR", str(ROOT / "reports")))
+    tabs = st.tabs(["Predict", "Batch", "Model Comparison", "Error Explorer", "Insights", "About"])
+    with tabs[0]:
+        single_review(model, threshold)
+    with tabs[1]:
+        batch_reviews(model, threshold)
+    try:
+        metrics = load_reports(directory, metadata)
+    except (OSError, ValueError, KeyError) as error:
+        metrics = None
+        with tabs[2]:
+            st.info(f"Matching reports are unavailable. Run the offline training command. {error}")
+    if metrics:
+        with tabs[2]:
+            try:
+                performance(directory, metrics)
+            except (OSError, ValueError, KeyError) as error:
+                st.warning(f"Some generated report files are missing or invalid: {error}")
+    with tabs[3]:
+        if metrics:
+            try:
+                errors(directory)
+            except (OSError, ValueError, AttributeError) as error:
+                st.warning(f"Error samples could not be read: {error}")
+        else:
+            st.info("Matching reports are needed to explore errors.")
+    with tabs[4]:
         label = st.selectbox("Sentiment class", list(model.classes_))
         terms = top_terms(model, label)
         if terms.empty:
-            st.info("Coefficient explanations are available for linear models only.")
+            st.info("This baseline has no linear coefficients.")
         else:
             st.bar_chart(terms.set_index("term"))
-            st.caption(
-                "Largest positive class coefficients. Associations can reflect dataset biases and are not causal explanations. Single-review analysis shows local contributions."
-            )
-    else:
-        st.subheader("About this model")
-        st.write("Python • scikit-learn • TF-IDF word unigrams/bigrams • Streamlit")
-        st.write(
-            "The model is trained offline; the app caches its complete preprocessing and classification pipeline. It is a portfolio application, not a monitored production service."
+            st.dataframe(terms, hide_index=True)
+        st.caption(
+            "Positive and negative coefficients for this class, before calibration. These are associations, not causal effects."
         )
-        for limitation in metadata["limitations"]:
-            st.write(f"• {limitation}")
-        st.json(
-            {
-                key: metadata[key]
-                for key in [
-                    "selected_model",
-                    "created_utc",
-                    "python",
-                    "versions",
-                    "config",
-                    "artifact_sha256",
-                ]
-            }
+    with tabs[5]:
+        st.subheader("Review Sentiment Lab")
+        st.write(
+            "Amazon food and consumer-product reviews with rating-derived sentiment labels. English review triage for human exploration."
+        )
+        st.write(
+            "Sarcasm, mixed sentiment, neutral ambiguity, source imbalance and domain shift remain limitations. Random splits do not isolate products, authors or time."
+        )
+        st.markdown(
+            "[Model card on GitHub](https://github.com/Iqranawaz-debug/Sentiment_Analysis_On_Product_Reviews/blob/main/docs/MODEL_CARD.md)"
+        )
+        card = ROOT / "docs/MODEL_CARD.md"
+        st.download_button(
+            "Download model card",
+            card.read_text(encoding="utf-8"),
+            "MODEL_CARD.md",
+            "text/markdown",
+        )
+        with st.expander("Model card"):
+            st.markdown(card.read_text(encoding="utf-8"))
+        st.caption(
+            "The model trains offline and is cached for inference. Uploads are not deliberately persisted."
         )
