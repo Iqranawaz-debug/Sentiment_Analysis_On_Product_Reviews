@@ -19,6 +19,7 @@ from sklearn.svm import LinearSVC
 from threadpoolctl import threadpool_limits
 
 from src.config import load_config
+from src.credibility import add_credibility
 from src.data import load_data, sha256_file, split_data
 from src.evaluate import evaluate_predictions, write_reports
 from src.features import build_pipeline
@@ -154,6 +155,10 @@ def train(paths, config, output=None, max_samples=None, transformer=False):
         "transformer": optional,
         "created_utc": datetime.now(timezone.utc).isoformat(),
     }
+    evidence = test[["label", "source"]].rename(columns={"label": "true_label"}).copy()
+    evidence["predicted_label"] = predicted
+    add_credibility(metrics, evidence, config.get("evaluation"))
+    final = metrics["test"]
     output.mkdir(parents=True, exist_ok=True)
     staging = output / "pipeline.joblib.tmp"
     joblib.dump(best, staging, compress=3)

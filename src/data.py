@@ -46,10 +46,12 @@ def load_data(paths):
             invalid = frame.label.notna() & ratings.isna()
             if invalid.any():
                 raise ValueError(f"Non-numeric ratings in {path.name}.")
+            frame["star_rating"] = ratings
             frame["label"] = ratings.map(
                 {1: "negative", 2: "negative", 3: "neutral", 4: "positive", 5: "positive"}
             )
         else:
+            frame["star_rating"] = float("nan")
             frame["label"] = frame.label.astype("string").str.strip().str.lower()
             if not frame.label.dropna().isin(LABELS).all():
                 raise ValueError(f"Unexpected sentiment labels in {path.name}.")

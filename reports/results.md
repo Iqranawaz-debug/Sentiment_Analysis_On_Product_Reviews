@@ -1,16 +1,16 @@
+Selected model: **logistic**.
+
+| Test population | Macro-F1 (95% CI) | Majority macro-F1 | Accuracy (95% CI) | Majority accuracy | Support |
+|---|---:|---:|---:|---:|---|
+| All | 0.6140 [0.5928, 0.6362] | 0.2930 | 0.8636 [0.8531, 0.8733] | 0.7840 | 4500 |
+| consumer-electronics | 0.4831 [0.3179, 0.6665] | 0.3199 | 0.9227 [0.8840, 0.9558] | 0.9227 | 181; **low support** |
+| food | 0.6149 [0.5940, 0.6353] | 0.2918 | 0.8611 [0.8509, 0.8710] | 0.7782 | 4319 |
+
 | Model | Training CV macro-F1 | Fold SD |
 |---|---:|---:|
 | majority | 0.2930 | 0.0000 |
 | logistic | 0.6442 | 0.0082 |
 | linear_svc | 0.6289 | 0.0104 |
-
-Selected calibrated model: **logistic**.
-
-| Test population | Accuracy | Macro-F1 | Reviews |
-|---|---:|---:|---:|
-| All | 0.8636 | 0.6140 | 4500 |
-| consumer-electronics | 0.9227 | 0.4831 | 181 |
-| food | 0.8611 | 0.6149 | 4319 |
 
 | Class | Precision | Recall | F1 |
 |---|---:|---:|---:|

@@ -92,26 +92,46 @@ def performance(directory, metrics):
     st.caption(
         "Families are compared using fixed settings in training-only CV. The winning family is tuned on validation. Test results are accessed after these choices."
     )
+    baseline = metrics["test"].get("majority_baseline")
+    panels = [("Test macro-F1", metrics["test"]["macro_f1"])]
+    if baseline:
+        panels.append(("Majority macro-F1", baseline["macro_f1"]))
+    panels.append(("Test accuracy", metrics["test"]["accuracy"]))
+    if baseline:
+        panels.append(("Majority accuracy", baseline["accuracy"]))
+    for column, (label, value) in zip(st.columns(len(panels)), panels):
+        column.metric(label, f"{value:.4f}")
+    populations = []
+    for source, result in {"Overall": metrics["test"], **metrics["per_source"]}.items():
+        row = {"source": source, "macro_f1": result["macro_f1"], "accuracy": result["accuracy"]}
+        for metric in ("macro_f1", "accuracy"):
+            ci = result.get("confidence_intervals", {}).get(metric)
+            if ci:
+                row[f"{metric}_95%_CI"] = f"[{ci['lower']:.4f}, {ci['upper']:.4f}]"
+        row.update(
+            {f"support_{label}": count for label, count in result.get("class_support", {}).items()}
+        )
+        row["support_status"] = "low support" if result.get("low_support") else "adequate"
+        populations.append(row)
+        if result.get("low_support"):
+            st.warning(
+                f"{source}: low support in {', '.join(result['low_support_classes'])}; fewer than {result['low_support_threshold']} samples per affected class."
+            )
+    st.dataframe(pd.DataFrame(populations), hide_index=True)
+    st.caption(
+        "Seeded paired-row bootstrap intervals are conditional on this fitted model. They do not include model-selection uncertainty or product/author clustering."
+    )
     comparison = pd.read_csv(directory / "comparison.csv")
     st.dataframe(
         comparison.drop(columns=["cv_folds", "cv_fold_scores"], errors="ignore"), hide_index=True
     )
-    for column, metric in zip(st.columns(2), ("accuracy", "macro_f1")):
-        column.metric(f"Test {metric.replace('_', ' ')}", f"{metrics['test'][metric]:.4f}")
     st.dataframe(pd.DataFrame(metrics["test"]["per_class"]).T)
-    st.markdown("**Domain breakdown**")
-    st.dataframe(
-        pd.DataFrame(
-            [
-                {
-                    "source": source,
-                    **{key: result[key] for key in ("accuracy", "macro_f1", "support")},
-                }
-                for source, result in metrics["per_source"].items()
-            ]
-        ),
-        hide_index=True,
-    )
+    if (directory / "experiments.csv").exists():
+        st.markdown("**Validation-only neutral experiments**")
+        st.dataframe(pd.read_csv(directory / "experiments.csv"), hide_index=True)
+        st.caption(
+            "Decision weights change the selected label; displayed calibrated probabilities remain unchanged."
+        )
     st.caption(
         "Source breakdown measures performance within the mixed-data test set; it is not an unseen-domain transfer experiment."
     )

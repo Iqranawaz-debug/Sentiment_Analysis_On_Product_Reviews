@@ -184,7 +184,8 @@ def test_training_artifact_contract(tmp_path):
     from src.explain import linear_estimator
 
     saved = pd.read_csv(tmp_path / "reports/predictions.csv")
-    assert evaluate_predictions(saved.true_label, saved.predicted_label) == reports["test"]
+    for key, value in evaluate_predictions(saved.true_label, saved.predicted_label).items():
+        assert value == reports["test"][key]
     assert sum(map(sum, reports["test"]["confusion_matrix"])) == len(saved)
     assert np.allclose(model.predict_proba(["great product"]).sum(axis=1), 1)
     base = linear_estimator(model)

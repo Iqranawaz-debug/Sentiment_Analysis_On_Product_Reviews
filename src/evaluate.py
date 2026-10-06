@@ -115,21 +115,32 @@ def write_reports(directory, metrics, test, predicted, probabilities, classes):
 
 
 def results_markdown(metrics):
-    lines = ["| Model | Training CV macro-F1 | Fold SD |", "|---|---:|---:|"]
+    lines = [
+        f"Selected model: **{metrics['selected_model']}**.",
+        "",
+        "| Test population | Macro-F1 (95% CI) | Majority macro-F1 | Accuracy (95% CI) | Majority accuracy | Support |",
+        "|---|---:|---:|---:|---:|---|",
+    ]
+    for name, result in {"All": metrics["test"], **metrics["per_source"]}.items():
+
+        def interval(key):
+            ci = result.get("confidence_intervals", {}).get(key)
+            value = f"{result[key]:.4f}"
+            return value + (f" [{ci['lower']:.4f}, {ci['upper']:.4f}]" if ci else "")
+
+        baseline = result.get("majority_baseline", {})
+        baseline_f1 = f"{baseline['macro_f1']:.4f}" if baseline else "pending"
+        baseline_acc = f"{baseline['accuracy']:.4f}" if baseline else "pending"
+        support = str(result["support"]) + (
+            "; **low support**" if result.get("low_support") else ""
+        )
+        lines.append(
+            f"| {name} | {interval('macro_f1')} | {baseline_f1} | {interval('accuracy')} | {baseline_acc} | {support} |"
+        )
+    lines += ["", "| Model | Training CV macro-F1 | Fold SD |", "|---|---:|---:|"]
     lines += [
         f"| {r['model']} | {r['cv_macro_f1']:.4f} | {r['cv_macro_f1_std']:.4f} |"
         for r in metrics["comparison"]
-    ]
-    lines += [
-        "",
-        f"Selected calibrated model: **{metrics['selected_model']}**.",
-        "",
-        "| Test population | Accuracy | Macro-F1 | Reviews |",
-        "|---|---:|---:|---:|",
-    ]
-    lines += [
-        f"| {name} | {r['accuracy']:.4f} | {r['macro_f1']:.4f} | {r['support']} |"
-        for name, r in {"All": metrics["test"], **metrics["per_source"]}.items()
     ]
     lines += ["", "| Class | Precision | Recall | F1 |", "|---|---:|---:|---:|"]
     lines += [
