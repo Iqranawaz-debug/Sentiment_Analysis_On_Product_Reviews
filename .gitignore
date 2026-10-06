@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/raw/*
+!data/raw/.gitkeep
+tmp/
+.streamlit/secrets.toml
+*.log
+
+.ruff_cache/
+reports/error_analysis.csv
+reports/predictions.csv
+models/transformer/
