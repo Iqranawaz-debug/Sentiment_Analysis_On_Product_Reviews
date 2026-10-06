@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from src.data import LABELS, sha256_file
+from src.explain import explain_review, top_terms  # noqa: F401
 from src.preprocessing import validate_review
 
 MAX_CSV_BYTES = 5 * 1024 * 1024
@@ -42,7 +43,9 @@ def load_artifact(directory):
     return pipeline, metadata
 
 
-def predict_reviews(pipeline, texts):
+def predict_reviews(pipeline, texts, threshold=0.60):
+    if not 0 <= threshold <= 1:
+        raise ValueError("Confidence threshold must be between zero and one.")
     texts = list(texts)
     if not texts or len(texts) > MAX_BATCH_ROWS:
         raise ValueError(f"Provide 1 to {MAX_BATCH_ROWS:,} reviews.")
@@ -69,6 +72,9 @@ def predict_reviews(pipeline, texts):
     result.loc[~known, "sentiment"] = "unavailable"
     numeric = result.select_dtypes(include="number").columns
     result.loc[~known, numeric] = np.nan
+    result["low_confidence"] = (~known) | (
+        result.get("model_probability", pd.Series(0, index=result.index)).fillna(0) < threshold
+    )
     return result
 
 
@@ -116,33 +122,18 @@ def export_csv(frame):
     return safe.to_csv(index=False).encode("utf-8-sig")
 
 
-def explain_review(pipeline, text, label, limit=12):
-    validate_review(text)
-    classifier = pipeline.named_steps["clf"]
-    if not hasattr(classifier, "coef_"):
-        return pd.DataFrame()
-    index = list(pipeline.classes_).index(label)
-    vectorizer = pipeline.named_steps["tfidf"]
-    features = vectorizer.transform([text]).tocoo()
-    contributions = features.data * classifier.coef_[index, features.col]
-    order = np.argsort(np.abs(contributions))[::-1][:limit]
-    return pd.DataFrame(
-        {
-            "term": vectorizer.get_feature_names_out()[features.col[order]],
-            "contribution": contributions[order],
-        }
-    )
-
-
-def top_terms(pipeline, label, limit=15):
-    classifier = pipeline.named_steps["clf"]
-    if not hasattr(classifier, "coef_"):
-        return pd.DataFrame()
-    weights = classifier.coef_[list(pipeline.classes_).index(label)]
-    indices = np.argsort(weights)[-limit:][::-1]
-    return pd.DataFrame(
-        {
-            "term": pipeline.named_steps["tfidf"].get_feature_names_out()[indices],
-            "weight": weights[indices],
-        }
-    )
+def predict(pipeline, text, threshold=0.60):
+    """Stable single-prediction schema with calibrated probability ordering."""
+    if not hasattr(pipeline, "predict_proba"):
+        raise ValueError("A probability-capable calibrated artifact is required.")
+    row = predict_reviews(pipeline, [text], threshold).iloc[0]
+    return {
+        "label": row.sentiment,
+        "probabilities": {
+            label: None
+            if pd.isna(row[f"probability_{label}"])
+            else float(row[f"probability_{label}"])
+            for label in LABELS
+        },
+        "low_confidence": bool(row.low_confidence),
+    }

@@ -190,6 +190,21 @@ def test_missing_artifact(tmp_path):
         load_artifact(tmp_path)
 
 
+def test_prediction_schema_and_threshold(toy_model):
+    from src.predict import predict
+
+    result = predict(toy_model, "good product", threshold=1.0)
+    assert set(result) == {"label", "probabilities", "low_confidence"}
+    assert set(result["probabilities"]) == {"negative", "neutral", "positive"}
+    assert sum(result["probabilities"].values()) == pytest.approx(1)
+    assert result["low_confidence"] is True
+    assert predict(toy_model, "good product", threshold=0)["low_confidence"] is False
+    unknown = predict(toy_model, "zzqxword")
+    assert unknown["label"] == "unavailable"
+    assert unknown["low_confidence"] is True
+    assert all(value is None for value in unknown["probabilities"].values())
+
+
 def test_committed_artifact():
     directory = Path(__file__).resolve().parents[1] / "models"
     if not (directory / "pipeline.joblib").exists():
