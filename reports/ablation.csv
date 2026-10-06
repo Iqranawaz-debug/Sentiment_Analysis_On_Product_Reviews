@@ -1,0 +1,5 @@
+model,stopwords,ngrams,validation_macro_f1
+logistic,none,"(1, 1)",0.603712700880731
+logistic,none,"(1, 2)",0.6437651991899868
+logistic,negation_safe,"(1, 1)",0.5832224469932594
+logistic,negation_safe,"(1, 2)",0.6155630603331677

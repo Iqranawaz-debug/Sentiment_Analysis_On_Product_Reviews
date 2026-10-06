@@ -5,3 +5,9 @@ data/raw/*.csv
 __pycache__
 .pytest_cache
 .ruff_cache
+reports/predictions.csv
+reports/error_analysis.csv
+reports/reproduction
+reports/transformer-experiment
+models/reproduction
+models/transformer-experiment

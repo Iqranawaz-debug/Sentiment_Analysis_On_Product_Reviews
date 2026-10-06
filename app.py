@@ -33,9 +33,7 @@ except Exception:
         "The model could not be loaded. Check the artifact files and installed dependency versions."
     )
     st.code("python -m pip install -r requirements.txt")
-    st.code(
-        "python -m src.train --config configs/default.yaml"
-    )
+    st.code("python -m src.train --config configs/default.yaml")
     st.info(
         "The app never trains during startup. See README.md for setup and recovery instructions."
     )

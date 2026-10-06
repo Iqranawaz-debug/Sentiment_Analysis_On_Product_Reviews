@@ -1,0 +1,122 @@
+{
+  "schema_version": 2,
+  "selected_model": "logistic",
+  "metrics": {
+    "accuracy": 0.8635555555555555,
+    "macro_f1": 0.6139869025233623,
+    "per_class": {
+      "negative": {
+        "precision": 0.7341772151898734,
+        "recall": 0.6363636363636364,
+        "f1-score": 0.6817800167926112,
+        "support": 638.0
+      },
+      "neutral": {
+        "precision": 0.49504950495049505,
+        "recall": 0.1497005988023952,
+        "f1-score": 0.22988505747126436,
+        "support": 334.0
+      },
+      "positive": {
+        "precision": 0.891835673426937,
+        "recall": 0.9722222222222222,
+        "f1-score": 0.930295633306211,
+        "support": 3528.0
+      },
+      "accuracy": 0.8635555555555555,
+      "macro avg": {
+        "precision": 0.7070207978557684,
+        "recall": 0.5860954857960846,
+        "f1-score": 0.6139869025233623,
+        "support": 4500.0
+      },
+      "weighted avg": {
+        "precision": 0.8400328563988531,
+        "recall": 0.8635555555555555,
+        "f1-score": 0.8430756120474223,
+        "support": 4500.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        406,
+        19,
+        213
+      ],
+      [
+        81,
+        50,
+        203
+      ],
+      [
+        66,
+        32,
+        3430
+      ]
+    ],
+    "class_order": [
+      "negative",
+      "neutral",
+      "positive"
+    ],
+    "support": 4500
+  },
+  "dataset_hash": "9165cb9b19b9c90252bf8d60bee46ab50d4ad6bdac3e5044644cfd70150fe8e6",
+  "seed": 42,
+  "created_utc": "2026-10-06T18:52:43.378990+00:00",
+  "config": {
+    "paths": {
+      "data": [
+        "C:\\Users\\iqran\\OneDrive\\Desktop\\sentiment_analysis_on_product_reviews\\data\\raw\\Amazon_Food_Reviews.csv",
+        "C:\\Users\\iqran\\OneDrive\\Desktop\\sentiment_analysis_on_product_reviews\\data\\raw\\Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products_May19.csv"
+      ],
+      "models": "C:\\Users\\iqran\\OneDrive\\Desktop\\sentiment_analysis_on_product_reviews\\models",
+      "reports": "C:\\Users\\iqran\\OneDrive\\Desktop\\sentiment_analysis_on_product_reviews\\reports"
+    },
+    "seed": 42,
+    "split": {
+      "train": 0.7,
+      "val": 0.15,
+      "test": 0.15
+    },
+    "calibration_fraction": 0.2,
+    "cv_folds": 5,
+    "n_jobs": 1,
+    "low_confidence_threshold": 0.6,
+    "features": {
+      "min_df": 2,
+      "max_features": 50000,
+      "char_max_features": 50000
+    },
+    "model_grids": {
+      "logistic": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "linear_svc": [
+        0.5,
+        1.0,
+        2.0
+      ]
+    },
+    "transformer": {
+      "model": "distilbert-base-uncased",
+      "max_samples": 3000,
+      "epochs": 2,
+      "batch_size": 8,
+      "max_length": 128
+    }
+  },
+  "versions": {
+    "scikit-learn": "1.9.1",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "pandas": "3.0.6",
+    "joblib": "1.6.0",
+    "streamlit": "1.64.0"
+  },
+  "artifact_sha256": "85edf60258b04b218bde4d4f7c954176454ee7f42ddeb6816985e53fd72617a0",
+  "calibration": "sigmoid on disjoint training calibration subset",
+  "low_confidence_threshold": 0.6
+}

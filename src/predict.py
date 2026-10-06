@@ -8,6 +8,8 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.pipeline import Pipeline
 
 from src.data import LABELS, sha256_file
 from src.explain import explain_review, top_terms  # noqa: F401
@@ -22,7 +24,7 @@ def load_artifact(directory):
     model_path = directory / "pipeline.joblib"
     try:
         metadata = json.loads((directory / "metadata.json").read_text(encoding="utf-8"))
-        if metadata["schema_version"] not in (1, 2):
+        if metadata["schema_version"] != 2:
             raise ValueError("Unsupported artifact schema. Retrain the model.")
         if sha256_file(model_path) != metadata["artifact_sha256"]:
             raise ValueError("Model checksum mismatch. Restore the matching artifact pair.")
@@ -32,7 +34,12 @@ def load_artifact(directory):
                     f"{package} version mismatch. Install requirements.txt or retrain."
                 )
         pipeline = joblib.load(model_path)
-        if set(pipeline.classes_) != set(LABELS) or "tfidf" not in pipeline.named_steps:
+        if (
+            not isinstance(pipeline, Pipeline)
+            or set(pipeline.classes_) != set(LABELS)
+            or "tfidf" not in pipeline.named_steps
+            or not isinstance(pipeline.named_steps.get("clf"), CalibratedClassifierCV)
+        ):
             raise ValueError("Model does not match the three-class text pipeline contract.")
     except FileNotFoundError as error:
         raise ValueError(

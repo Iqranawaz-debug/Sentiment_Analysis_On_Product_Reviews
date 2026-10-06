@@ -36,7 +36,23 @@ def write_reports(directory, metrics, test, predicted, probabilities, classes):
     directory.mkdir(parents=True, exist_ok=True)
     figures = directory / "figures"
     figures.mkdir(exist_ok=True)
-    pd.DataFrame(metrics["comparison"]).to_csv(directory / "comparison.csv", index=False)
+    comparison = list(metrics["comparison"])
+    if metrics.get("transformer"):
+        optional = metrics["transformer"]
+        comparison.append(
+            {
+                "model": optional["model"],
+                "cv_macro_f1": None,
+                "cv_macro_f1_std": None,
+                "test_accuracy": optional["test"]["accuracy"],
+                "test_macro_f1": optional["test"]["macro_f1"],
+                "protocol": optional["note"],
+            }
+        )
+        (directory / "transformer_metrics.json").write_text(
+            json.dumps(optional, indent=2, allow_nan=False), encoding="utf-8"
+        )
+    pd.DataFrame(comparison).to_csv(directory / "comparison.csv", index=False)
     pd.DataFrame(metrics["ablations"]).to_csv(directory / "ablation.csv", index=False)
     rows = test[["review_text", "label", "source"]].rename(columns={"label": "true_label"}).copy()
     rows["predicted_label"] = predicted

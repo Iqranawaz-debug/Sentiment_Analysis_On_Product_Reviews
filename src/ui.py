@@ -92,7 +92,10 @@ def performance(directory, metrics):
     st.caption(
         "Families are compared using fixed settings in training-only CV. The winning family is tuned on validation. Test results are accessed after these choices."
     )
-    st.dataframe(pd.read_csv(directory / "comparison.csv"), hide_index=True)
+    comparison = pd.read_csv(directory / "comparison.csv")
+    st.dataframe(
+        comparison.drop(columns=["cv_folds", "cv_fold_scores"], errors="ignore"), hide_index=True
+    )
     for column, metric in zip(st.columns(2), ("accuracy", "macro_f1")):
         column.metric(f"Test {metric.replace('_', ' ')}", f"{metrics['test'][metric]:.4f}")
     st.dataframe(pd.DataFrame(metrics["test"]["per_class"]).T)

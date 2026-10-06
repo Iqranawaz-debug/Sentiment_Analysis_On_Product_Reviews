@@ -12,3 +12,9 @@ tmp/
 reports/error_analysis.csv
 reports/predictions.csv
 models/transformer/
+models/reproduction/
+models/transformer-experiment/
+reports/reproduction/
+reports/transformer-experiment/
+reports/**/predictions.csv
+reports/**/error_analysis.csv

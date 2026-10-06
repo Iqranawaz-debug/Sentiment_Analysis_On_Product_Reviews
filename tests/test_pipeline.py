@@ -180,6 +180,21 @@ def test_training_artifact_contract(tmp_path):
     assert sum(reports["split_counts"][key] for key in ("train", "val", "test")) == 180
     assert len(reports["comparison"]) == 3
     assert len(predict_reviews(model, ["great product"])) == 1
+    from src.evaluate import evaluate_predictions
+    from src.explain import linear_estimator
+
+    saved = pd.read_csv(tmp_path / "reports/predictions.csv")
+    assert evaluate_predictions(saved.true_label, saved.predicted_label) == reports["test"]
+    assert sum(map(sum, reports["test"]["confusion_matrix"])) == len(saved)
+    assert np.allclose(model.predict_proba(["great product"]).sum(axis=1), 1)
+    base = linear_estimator(model)
+    if hasattr(base, "coef_"):
+        index = list(base.classes_).index("positive")
+        parts = explain_review(model, "great product", "positive", limit=100)
+        score = base.decision_function(model.named_steps["tfidf"].transform(["great product"]))
+        assert parts.contribution.sum() + base.intercept_[index] == pytest.approx(score[0, index])
+    with pytest.raises(ValueError, match="Reports already exist"):
+        train([source], config, output)
     (output / "pipeline.joblib").write_bytes(b"corrupt")
     with pytest.raises(ValueError, match="checksum"):
         load_artifact(output)

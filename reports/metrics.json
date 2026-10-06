@@ -1,0 +1,332 @@
+{
+  "schema_version": 2,
+  "selected_model": "logistic",
+  "test": {
+    "accuracy": 0.8635555555555555,
+    "macro_f1": 0.6139869025233623,
+    "per_class": {
+      "negative": {
+        "precision": 0.7341772151898734,
+        "recall": 0.6363636363636364,
+        "f1-score": 0.6817800167926112,
+        "support": 638.0
+      },
+      "neutral": {
+        "precision": 0.49504950495049505,
+        "recall": 0.1497005988023952,
+        "f1-score": 0.22988505747126436,
+        "support": 334.0
+      },
+      "positive": {
+        "precision": 0.891835673426937,
+        "recall": 0.9722222222222222,
+        "f1-score": 0.930295633306211,
+        "support": 3528.0
+      },
+      "accuracy": 0.8635555555555555,
+      "macro avg": {
+        "precision": 0.7070207978557684,
+        "recall": 0.5860954857960846,
+        "f1-score": 0.6139869025233623,
+        "support": 4500.0
+      },
+      "weighted avg": {
+        "precision": 0.8400328563988531,
+        "recall": 0.8635555555555555,
+        "f1-score": 0.8430756120474223,
+        "support": 4500.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        406,
+        19,
+        213
+      ],
+      [
+        81,
+        50,
+        203
+      ],
+      [
+        66,
+        32,
+        3430
+      ]
+    ],
+    "class_order": [
+      "negative",
+      "neutral",
+      "positive"
+    ],
+    "support": 4500
+  },
+  "per_source": {
+    "consumer-electronics": {
+      "accuracy": 0.9226519337016574,
+      "macro_f1": 0.4830928708479729,
+      "per_class": {
+        "negative": {
+          "precision": 0.25,
+          "recall": 0.1111111111111111,
+          "f1-score": 0.15384615384615385,
+          "support": 9.0
+        },
+        "neutral": {
+          "precision": 1.0,
+          "recall": 0.2,
+          "f1-score": 0.3333333333333333,
+          "support": 5.0
+        },
+        "positive": {
+          "precision": 0.9375,
+          "recall": 0.9880239520958084,
+          "f1-score": 0.9620991253644315,
+          "support": 167.0
+        },
+        "accuracy": 0.9226519337016574,
+        "macro avg": {
+          "precision": 0.7291666666666666,
+          "recall": 0.43304502106897313,
+          "f1-score": 0.4830928708479729,
+          "support": 181.0
+        },
+        "weighted avg": {
+          "precision": 0.9050414364640884,
+          "recall": 0.9226519337016574,
+          "f1-score": 0.9045405303157023,
+          "support": 181.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          1,
+          0,
+          8
+        ],
+        [
+          1,
+          1,
+          3
+        ],
+        [
+          2,
+          0,
+          165
+        ]
+      ],
+      "class_order": [
+        "negative",
+        "neutral",
+        "positive"
+      ],
+      "support": 181
+    },
+    "food": {
+      "accuracy": 0.8610789534614494,
+      "macro_f1": 0.6149294912057638,
+      "per_class": {
+        "negative": {
+          "precision": 0.7377049180327869,
+          "recall": 0.643879173290938,
+          "f1-score": 0.6876061120543294,
+          "support": 629.0
+        },
+        "neutral": {
+          "precision": 0.49,
+          "recall": 0.14893617021276595,
+          "f1-score": 0.22843822843822845,
+          "support": 329.0
+        },
+        "positive": {
+          "precision": 0.8896457765667575,
+          "recall": 0.9714370722999107,
+          "f1-score": 0.9287441331247334,
+          "support": 3361.0
+        },
+        "accuracy": 0.8610789534614494,
+        "macro avg": {
+          "precision": 0.7057835648665147,
+          "recall": 0.5880841386012049,
+          "f1-score": 0.6149294912057638,
+          "support": 4319.0
+        },
+        "weighted avg": {
+          "precision": 0.8370747507486676,
+          "recall": 0.8610789534614494,
+          "f1-score": 0.8402800308105068,
+          "support": 4319.0
+        }
+      },
+      "confusion_matrix": [
+        [
+          405,
+          19,
+          205
+        ],
+        [
+          80,
+          49,
+          200
+        ],
+        [
+          64,
+          32,
+          3265
+        ]
+      ],
+      "class_order": [
+        "negative",
+        "neutral",
+        "positive"
+      ],
+      "support": 4319
+    }
+  },
+  "comparison": [
+    {
+      "model": "majority",
+      "cv_macro_f1": 0.29300949545597865,
+      "cv_macro_f1_std": 2.493458150949479e-05,
+      "cv_folds": 5,
+      "cv_fold_scores": [
+        0.29302196274673337,
+        0.29302196274673337,
+        0.29302196274673337,
+        0.29302196274673337,
+        0.29295962629295963
+      ]
+    },
+    {
+      "model": "logistic",
+      "cv_macro_f1": 0.6441702703421806,
+      "cv_macro_f1_std": 0.008245279517529725,
+      "cv_folds": 5,
+      "cv_fold_scores": [
+        0.650458823442234,
+        0.6487365054464079,
+        0.6279019480986037,
+        0.6465489485982783,
+        0.6472051261253793
+      ]
+    },
+    {
+      "model": "linear_svc",
+      "cv_macro_f1": 0.6288636103280212,
+      "cv_macro_f1_std": 0.010445659827864788,
+      "cv_folds": 5,
+      "cv_fold_scores": [
+        0.6193500742593524,
+        0.6388674816114167,
+        0.6193702278169021,
+        0.6439557547134492,
+        0.6227745132389854
+      ]
+    }
+  ],
+  "validation_tuning": [
+    {
+      "C": 0.5,
+      "validation_macro_f1": 0.6372886626389532
+    },
+    {
+      "C": 1.0,
+      "validation_macro_f1": 0.6437651991899868
+    },
+    {
+      "C": 2.0,
+      "validation_macro_f1": 0.6491410246462288
+    }
+  ],
+  "ablations": [
+    {
+      "model": "logistic",
+      "stopwords": "none",
+      "ngrams": "(1, 1)",
+      "validation_macro_f1": 0.603712700880731
+    },
+    {
+      "model": "logistic",
+      "stopwords": "none",
+      "ngrams": "(1, 2)",
+      "validation_macro_f1": 0.6437651991899868
+    },
+    {
+      "model": "logistic",
+      "stopwords": "negation_safe",
+      "ngrams": "(1, 1)",
+      "validation_macro_f1": 0.5832224469932594
+    },
+    {
+      "model": "logistic",
+      "stopwords": "negation_safe",
+      "ngrams": "(1, 2)",
+      "validation_macro_f1": 0.6155630603331677
+    }
+  ],
+  "data_audit": {
+    "sources": [
+      {
+        "filename": "Amazon_Food_Reviews.csv",
+        "rows": 568454,
+        "sha256": "a88348c20ed3f85d647e8fbaac0a730ab2f09f95e5d1f4bcf1f9e3650ef624d7"
+      },
+      {
+        "filename": "Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products_May19.csv",
+        "rows": 28332,
+        "sha256": "9778f5b1a7e5d50de2ec6191296d73599c9287468a788b197d97f46d9cdaf824"
+      }
+    ],
+    "input_rows": 596786,
+    "missing_rows_removed": 0,
+    "invalid_text_rows_removed": 32,
+    "conflicting_rows_removed": 567,
+    "duplicate_rows_removed": 185645,
+    "clean_rows": 410542,
+    "class_distribution": {
+      "negative": 58132,
+      "neutral": 30487,
+      "positive": 321923
+    },
+    "text_length_characters": {
+      "count": 410542.0,
+      "mean": 420.82692148428174,
+      "std": 427.2248438878778,
+      "min": 2.0,
+      "25%": 173.0,
+      "50%": 293.0,
+      "75%": 513.0,
+      "max": 16952.0
+    }
+  },
+  "seed": 42,
+  "max_samples": 30000,
+  "split_counts": {
+    "train": 21000,
+    "val": 4500,
+    "test": 4500,
+    "fit": 16800,
+    "calibration": 4200
+  },
+  "split_class_distribution": {
+    "train": {
+      "positive": 16467,
+      "negative": 2973,
+      "neutral": 1560
+    },
+    "val": {
+      "positive": 3529,
+      "negative": 637,
+      "neutral": 334
+    },
+    "test": {
+      "positive": 3528,
+      "negative": 638,
+      "neutral": 334
+    }
+  },
+  "transformer": null,
+  "created_utc": "2026-10-06T18:52:43.378990+00:00",
+  "dataset_hash": "9165cb9b19b9c90252bf8d60bee46ab50d4ad6bdac3e5044644cfd70150fe8e6",
+  "artifact_sha256": "85edf60258b04b218bde4d4f7c954176454ee7f42ddeb6816985e53fd72617a0"
+}
