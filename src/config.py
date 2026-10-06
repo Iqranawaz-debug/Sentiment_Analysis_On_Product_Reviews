@@ -1,4 +1,5 @@
 """Validated repository-relative experiment configuration."""
+
 from pathlib import Path
 
 import yaml
@@ -8,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def load_config(path=ROOT / "configs/default.yaml"):
     config = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-    if config["split"] != {"train": .70, "val": .15, "test": .15}:
+    if config["split"] != {"train": 0.70, "val": 0.15, "test": 0.15}:
         raise ValueError("The evaluation protocol requires a 70/15/15 split.")
     if config["cv_folds"] != 5:
         raise ValueError("The evaluation protocol requires five CV folds.")

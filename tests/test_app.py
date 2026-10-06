@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from streamlit.testing.v1 import AppTest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,7 +16,14 @@ def test_app_pages_and_predictions():
     app = AppTest.from_file(str(ROOT / "app.py")).run(timeout=30)
     assert not app.exception
     assert not app.error
-    for page in ["Data exploration", "Model performance", "Explainability", "About and model info", "Batch CSV", "Single review"]:
+    for page in [
+        "Data exploration",
+        "Model performance",
+        "Explainability",
+        "About and model info",
+        "Batch CSV",
+        "Single review",
+    ]:
         app.sidebar.radio[0].set_value(page).run(timeout=30)
         assert not app.exception, page
     app.button[0].click().run()
@@ -36,7 +44,9 @@ def test_app_pages_and_predictions():
 def test_csv_upload_download_and_invalid_upload():
     app = AppTest.from_file(str(ROOT / "app.py")).run(timeout=30)
     app.sidebar.radio[0].set_value("Batch CSV").run()
-    app.file_uploader[0].set_value(("reviews.csv", (ROOT / "data/example_reviews.csv").read_bytes(), "text/csv")).run()
+    app.file_uploader[0].set_value(
+        ("reviews.csv", (ROOT / "data/example_reviews.csv").read_bytes(), "text/csv")
+    ).run()
     assert not app.exception
     assert not app.error
     assert len(app.dataframe[0].value) == 3

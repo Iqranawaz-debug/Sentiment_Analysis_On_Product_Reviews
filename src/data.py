@@ -1,6 +1,7 @@
 """Load documented source schemas and audit data before splitting."""
-from pathlib import Path
+
 import hashlib
+from pathlib import Path
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -23,13 +24,21 @@ def load_data(paths):
     for path in paths:
         path = Path(path)
         columns = pd.read_csv(path, nrows=0).columns
-        schemas = [("reviews.text", "reviews.rating"), ("Text", "Score"),
-                   ("review_text", "score"), ("review_text", "sentiment")]
+        schemas = [
+            ("reviews.text", "reviews.rating"),
+            ("Text", "Score"),
+            ("review_text", "score"),
+            ("review_text", "sentiment"),
+        ]
         schema = next((pair for pair in schemas if set(pair) <= set(columns)), None)
         if schema is None:
             raise ValueError(f"Unsupported training schema in {path.name}.")
-        frame = pd.read_csv(path, usecols=list(schema)).rename(columns={schema[0]: "review_text", schema[1]: "label"})
-        frame["source"] = {"Text": "food", "reviews.text": "consumer-electronics"}.get(schema[0], path.stem)
+        frame = pd.read_csv(path, usecols=list(schema)).rename(
+            columns={schema[0]: "review_text", schema[1]: "label"}
+        )
+        frame["source"] = {"Text": "food", "reviews.text": "consumer-electronics"}.get(
+            schema[0], path.stem
+        )
         if schema[1] != "sentiment":
             ratings = pd.to_numeric(frame.label, errors="coerce")
             if (~ratings.dropna().isin([1, 2, 3, 4, 5])).any():
@@ -37,7 +46,9 @@ def load_data(paths):
             invalid = frame.label.notna() & ratings.isna()
             if invalid.any():
                 raise ValueError(f"Non-numeric ratings in {path.name}.")
-            frame["label"] = ratings.map({1: "negative", 2: "negative", 3: "neutral", 4: "positive", 5: "positive"})
+            frame["label"] = ratings.map(
+                {1: "negative", 2: "negative", 3: "neutral", 4: "positive", 5: "positive"}
+            )
         else:
             frame["label"] = frame.label.astype("string").str.strip().str.lower()
             if not frame.label.dropna().isin(LABELS).all():
@@ -94,10 +105,9 @@ def split_data(frame, seed=42, max_samples=None):
         if max_samples < 1:
             raise ValueError("max_samples must be positive.")
         if max_samples < len(frame):
-            frame, _ = train_test_split(frame, train_size=max_samples,
-                                       stratify=frame.label, random_state=seed)
-    train, rest = train_test_split(frame, test_size=.30, stratify=frame.label,
-                                  random_state=seed)
-    val, test = train_test_split(rest, test_size=.50, stratify=rest.label,
-                                random_state=seed)
+            frame, _ = train_test_split(
+                frame, train_size=max_samples, stratify=frame.label, random_state=seed
+            )
+    train, rest = train_test_split(frame, test_size=0.30, stratify=frame.label, random_state=seed)
+    val, test = train_test_split(rest, test_size=0.50, stratify=rest.label, random_state=seed)
     return tuple(part.reset_index(drop=True) for part in (train, val, test))

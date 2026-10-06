@@ -1,123 +1,205 @@
-"""CLI training: python -m src.train --data first.csv second.csv."""
+"""Offline selection, validation tuning, calibration and one final test pass."""
+
 import argparse
-from datetime import datetime, timezone
+import hashlib
 import importlib.metadata
 import json
 import logging
+from datetime import datetime, timezone
 from pathlib import Path
-import platform
-import time
 
 import joblib
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.frozen import FrozenEstimator
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
+from sklearn.metrics import f1_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.svm import LinearSVC
+from threadpoolctl import threadpool_limits
 
-from src.data import load_data, sha256_file
-from src.evaluation import evaluate
-from src.preprocessing import clean_text
+from src.config import load_config
+from src.data import load_data, sha256_file, split_data
+from src.evaluate import evaluate_predictions, write_reports
+from src.features import build_pipeline
 
-ROOT = Path(__file__).resolve().parents[1]
 LOG = logging.getLogger(__name__)
 
 
-def candidates(seed, include_random_forest=False):
-    models = {
-        "Dummy baseline": (DummyClassifier(strategy="most_frequent"), {}),
-        "Naive Bayes": (MultinomialNB(), {"clf__alpha": [0.1, 1.0]}),
-        "Logistic Regression": (LogisticRegression(max_iter=2000, random_state=seed),
-                                {"clf__C": [0.5, 2.0], "clf__class_weight": [None, "balanced"]}),
-        "Linear SVM": (LinearSVC(random_state=seed, max_iter=5000),
-                       {"clf__C": [0.5, 2.0], "clf__class_weight": [None, "balanced"]}),
-    }
-    if include_random_forest:
-        models["Random Forest"] = (RandomForestClassifier(n_estimators=150, random_state=seed, n_jobs=1),
-                                   {"clf__max_depth": [30, None], "clf__class_weight": ["balanced"]})
-    return models
+def estimator(name, seed, c=1.0):
+    if name == "majority":
+        return DummyClassifier(strategy="most_frequent")
+    if name == "logistic":
+        return LogisticRegression(C=c, class_weight="balanced", max_iter=2000, random_state=seed)
+    return LinearSVC(C=c, class_weight="balanced", max_iter=5000, random_state=seed)
 
 
-def build_pipeline(classifier, config):
-    return Pipeline([
-        ("tfidf", TfidfVectorizer(preprocessor=clean_text, lowercase=False,
-                                 ngram_range=(1, 2), min_df=config["min_df"],
-                                 max_features=config["max_features"], sublinear_tf=True)),
-        ("clf", classifier),
-    ])
-
-
-def train(paths, config, output):
-    if not 0 < config["test_size"] < 1 or config["cv_folds"] < 2:
-        raise ValueError("test_size must be between 0 and 1, and cv_folds at least 2.")
-    if config["sample_size"] < 0 or config["min_df"] < 1 or config["max_features"] < 1:
-        raise ValueError("sample_size must be non-negative; min_df and max_features must be positive.")
-    seed = config["seed"]
+def train(paths, config, output=None, max_samples=None, transformer=False):
+    output = Path(output or config["paths"]["models"])
+    reports = Path(config["paths"]["reports"])
+    # Prevent accidentally replacing the evidence for a previously inspected test set.
+    if (reports / "metrics.json").exists():
+        raise ValueError(
+            "Reports already exist. Use a fresh reports/models directory for a new experiment."
+        )
     frame, audit = load_data(paths)
-    sample_size = config["sample_size"]
-    if sample_size and sample_size < len(frame):
-        frame, _ = train_test_split(frame, train_size=sample_size, stratify=frame.label, random_state=seed)
-    train_df, test_df = train_test_split(frame, test_size=config["test_size"], stratify=frame.label, random_state=seed)
-    if train_df.label.value_counts().min() < config["cv_folds"]:
-        raise ValueError("Too few examples in a training class for the requested CV folds.")
-    assert not set(train_df.normalized) & set(test_df.normalized)
-    cv = StratifiedKFold(n_splits=config["cv_folds"], shuffle=True, random_state=seed)
-    comparison, searches = [], {}
-    for name, (classifier, grid) in candidates(seed, config["include_random_forest"]).items():
-        LOG.info("Comparing %s", name)
-        start = time.perf_counter()
-        search = GridSearchCV(build_pipeline(classifier, config), grid, scoring={"macro_f1": "f1_macro", "accuracy": "accuracy", "weighted_f1": "f1_weighted"},
-                              refit="macro_f1", cv=cv, n_jobs=config["n_jobs"], error_score="raise")
-        search.fit(train_df.review_text, train_df.label)
-        best = search.best_index_
-        comparison.append({"model": name, "cv_macro_f1": float(search.best_score_),
-                           "cv_macro_f1_std": float(search.cv_results_["std_test_macro_f1"][best]),
-                           "cv_accuracy": float(search.cv_results_["mean_test_accuracy"][best]),
-                           "cv_weighted_f1": float(search.cv_results_["mean_test_weighted_f1"][best]),
-                           "best_parameters": search.best_params_, "search_seconds": time.perf_counter() - start})
-        searches[name] = search
+    train_df, val, test = split_data(frame, config["seed"], max_samples)
+    fit, calibration = train_test_split(
+        train_df,
+        test_size=config["calibration_fraction"],
+        stratify=train_df.label,
+        random_state=config["seed"],
+    )
+    if fit.label.value_counts().min() < config["cv_folds"]:
+        raise ValueError("Too few training examples per class for five-fold CV.")
+    cv = StratifiedKFold(config["cv_folds"], shuffle=True, random_state=config["seed"])
+    comparison = []
+    for name in ("majority", "logistic", "linear_svc"):
+        LOG.info("Five-fold training CV: %s", name)
+        pipeline = build_pipeline(
+            estimator(name, config["seed"]), config["features"], char=name == "linear_svc"
+        )
+        scores = cross_val_score(
+            pipeline,
+            fit.review_text,
+            fit.label,
+            cv=cv,
+            scoring="f1_macro",
+            n_jobs=config["n_jobs"],
+            error_score="raise",
+        )
+        comparison.append(
+            {
+                "model": name,
+                "cv_macro_f1": float(scores.mean()),
+                "cv_macro_f1_std": float(scores.std()),
+                "cv_folds": len(scores),
+                "cv_fold_scores": scores.tolist(),
+            }
+        )
     winner = max(comparison, key=lambda row: row["cv_macro_f1"])["model"]
-    pipeline = searches[winner].best_estimator_
-    # Holdout is accessed only after selection. Do not select again from these metrics.
-    metrics = evaluate(pipeline, test_df.review_text, test_df.label)
-    metadata = {
-        "schema_version": 1, "created_utc": datetime.now(timezone.utc).isoformat(),
-        "selected_model": winner, "selection_rule": "Highest mean training CV macro F1; insertion order breaks exact ties.",
-        "config": config, "versions": {p: importlib.metadata.version(p) for p in ["scikit-learn", "numpy", "scipy", "pandas", "joblib", "streamlit"]},
-        "python": platform.python_version(), "data_audit": audit,
-        "sample_rows": len(frame), "train_rows": len(train_df), "test_rows": len(test_df),
-        "split_class_distribution": {name: part.label.value_counts().sort_index().to_dict() for name, part in [("train", train_df), ("test", test_df)]},
-        "normalized_overlap": 0, "comparison": comparison, "holdout": metrics,
-        "training_length_quantiles": train_df.review_text.str.len().quantile([0, .25, .5, .75, .95, 1]).to_dict(),
-        "limitations": ["Rating-derived labels are sentiment proxies.", "Random review split does not isolate products, authors, or time.", "Near duplicates may remain.", "English-focused features; probabilities are not calibrated.", "Holdout represents the deduplicated sample, not live traffic."],
+    LOG.info("Selected family: %s; tuning only on validation", winner)
+    tuning, best, best_score = [], None, -1.0
+    for c in config["model_grids"].get(winner, [1.0]):
+        candidate = build_pipeline(
+            estimator(winner, config["seed"], c), config["features"], char=winner == "linear_svc"
+        )
+        candidate.fit(fit.review_text, fit.label)
+        score = float(f1_score(val.label, candidate.predict(val.review_text), average="macro"))
+        tuning.append({"C": c, "validation_macro_f1": score})
+        if score > best_score:
+            best, best_score = candidate, score
+    LOG.info("Running validation-only preprocessing ablations")
+    ablations = []
+    for stop in (False, True):
+        for ngrams in ((1, 1), (1, 2)):
+            model = build_pipeline(
+                estimator("logistic", config["seed"]),
+                config["features"],
+                stopwords=stop,
+                ngrams=ngrams,
+            )
+            model.fit(fit.review_text, fit.label)
+            ablations.append(
+                {
+                    "model": "logistic",
+                    "stopwords": "negation_safe" if stop else "none",
+                    "ngrams": str(ngrams),
+                    "validation_macro_f1": float(
+                        f1_score(val.label, model.predict(val.review_text), average="macro")
+                    ),
+                }
+            )
+    LOG.info("Calibrating frozen classifier on reserved training examples")
+    calibrator = CalibratedClassifierCV(FrozenEstimator(best.named_steps["clf"]), method="sigmoid")
+    calibrator.fit(best.named_steps["tfidf"].transform(calibration.review_text), calibration.label)
+    best.set_params(clf=calibrator)
+    optional = None
+    if transformer:
+        from src.transformer import train_transformer
+
+        optional = train_transformer(fit, val, test, config, output / "transformer")
+    # All selection and tuning is complete. Predict each test example exactly once.
+    LOG.info("Final test evaluation")
+    probabilities = best.predict_proba(test.review_text)
+    predicted = best.classes_[probabilities.argmax(axis=1)]
+    final = evaluate_predictions(test.label, predicted)
+    domains = {
+        source: evaluate_predictions(test.label[mask], predicted[mask])
+        for source in sorted(test.source.unique())
+        for mask in [test.source.to_numpy() == source]
     }
-    output = Path(output)
+    metrics = {
+        "schema_version": 2,
+        "selected_model": winner,
+        "test": final,
+        "per_source": domains,
+        "comparison": comparison,
+        "validation_tuning": tuning,
+        "ablations": ablations,
+        "data_audit": audit,
+        "seed": config["seed"],
+        "max_samples": max_samples,
+        "split_counts": {
+            "train": len(train_df),
+            "val": len(val),
+            "test": len(test),
+            "fit": len(fit),
+            "calibration": len(calibration),
+        },
+        "split_class_distribution": {
+            name: part.label.value_counts().to_dict()
+            for name, part in [("train", train_df), ("val", val), ("test", test)]
+        },
+        "transformer": optional,
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+    }
     output.mkdir(parents=True, exist_ok=True)
-    # Write model first; checksum makes a partially replaced pair fail closed.
     staging = output / "pipeline.joblib.tmp"
-    joblib.dump(pipeline, staging, compress=3)
+    joblib.dump(best, staging, compress=3)
     staging.replace(output / "pipeline.joblib")
-    metadata["artifact_sha256"] = sha256_file(output / "pipeline.joblib")
-    metadata["artifact_bytes"] = (output / "pipeline.joblib").stat().st_size
-    (output / "metadata.json.tmp").write_text(json.dumps(metadata, indent=2, allow_nan=False), encoding="utf-8")
+    dataset_hash = hashlib.sha256(json.dumps(audit["sources"], sort_keys=True).encode()).hexdigest()
+    metrics["dataset_hash"] = dataset_hash
+    metrics["artifact_sha256"] = sha256_file(output / "pipeline.joblib")
+    metadata = {
+        "schema_version": 2,
+        "selected_model": winner,
+        "metrics": final,
+        "dataset_hash": dataset_hash,
+        "seed": config["seed"],
+        "created_utc": metrics["created_utc"],
+        "config": config,
+        "versions": {
+            p: importlib.metadata.version(p)
+            for p in ("scikit-learn", "numpy", "scipy", "pandas", "joblib", "streamlit")
+        },
+        "artifact_sha256": metrics["artifact_sha256"],
+        "calibration": "sigmoid on disjoint training calibration subset",
+        "low_confidence_threshold": config["low_confidence_threshold"],
+    }
+    write_reports(reports, metrics, test, predicted, probabilities, best.classes_)
+    (output / "metadata.json.tmp").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
     (output / "metadata.json.tmp").replace(output / "metadata.json")
-    LOG.info("Selected %s; holdout macro F1 %.4f", winner, metrics["macro_f1"])
     return metadata
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data", nargs="+", required=True, type=Path)
-    parser.add_argument("--config", type=Path, default=ROOT / "config/training.json")
-    parser.add_argument("--output", type=Path, default=ROOT / "models")
+    parser.add_argument("--config", default="configs/default.yaml")
+    parser.add_argument("--max-samples", type=int)
+    parser.add_argument("--transformer", action="store_true")
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     try:
-        train(args.data, json.loads(args.config.read_text(encoding="utf-8")), args.output)
-    except (ValueError, OSError) as error:
+        config = load_config(args.config)
+        with threadpool_limits(limits=1):
+            train(
+                config["paths"]["data"],
+                config,
+                max_samples=args.max_samples,
+                transformer=args.transformer,
+            )
+    except (ValueError, OSError, ImportError) as error:
         parser.exit(1, f"Training failed: {error}\n")
 
 

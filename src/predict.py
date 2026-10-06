@@ -1,11 +1,14 @@
 """Validated inference and exports. Only load artifacts you trust."""
+
 import importlib.metadata
 import io
 import json
 from pathlib import Path
+
 import joblib
 import numpy as np
 import pandas as pd
+
 from src.data import LABELS, sha256_file
 from src.preprocessing import validate_review
 
@@ -18,18 +21,22 @@ def load_artifact(directory):
     model_path = directory / "pipeline.joblib"
     try:
         metadata = json.loads((directory / "metadata.json").read_text(encoding="utf-8"))
-        if metadata["schema_version"] != 1:
+        if metadata["schema_version"] not in (1, 2):
             raise ValueError("Unsupported artifact schema. Retrain the model.")
         if sha256_file(model_path) != metadata["artifact_sha256"]:
             raise ValueError("Model checksum mismatch. Restore the matching artifact pair.")
         for package in ["scikit-learn", "numpy", "scipy", "joblib"]:
             if metadata["versions"][package] != importlib.metadata.version(package):
-                raise ValueError(f"{package} version mismatch. Install requirements.txt or retrain.")
+                raise ValueError(
+                    f"{package} version mismatch. Install requirements.txt or retrain."
+                )
         pipeline = joblib.load(model_path)
         if set(pipeline.classes_) != set(LABELS) or "tfidf" not in pipeline.named_steps:
             raise ValueError("Model does not match the three-class text pipeline contract.")
     except FileNotFoundError as error:
-        raise ValueError("Model files are missing. Run python -m src.train --data <CSV paths> first.") from error
+        raise ValueError(
+            "Model files are missing. Run python -m src.train --config configs/default.yaml first."
+        ) from error
     except (KeyError, TypeError, AttributeError, json.JSONDecodeError) as error:
         raise ValueError("Invalid model metadata. Restore or retrain the artifact pair.") from error
     return pipeline, metadata
@@ -43,8 +50,13 @@ def predict_reviews(pipeline, texts):
         validate_review(text)
     features = pipeline.named_steps["tfidf"].transform(texts)
     known = np.asarray(features.getnnz(axis=1)).ravel() > 0
-    result = pd.DataFrame({"review_text": texts, "sentiment": pipeline.predict(texts),
-                           "status": np.where(known, "ok", "no_known_terms")})
+    result = pd.DataFrame(
+        {
+            "review_text": texts,
+            "sentiment": pipeline.predict(texts),
+            "status": np.where(known, "ok", "no_known_terms"),
+        }
+    )
     if hasattr(pipeline, "predict_proba"):
         probabilities = pipeline.predict_proba(texts)
         for index, label in enumerate(pipeline.classes_):
@@ -64,7 +76,14 @@ def read_batch(content: bytes):
     if not content or len(content) > MAX_CSV_BYTES:
         raise ValueError("Upload a non-empty UTF-8 CSV no larger than 5 MB.")
     try:
-        frame = pd.read_csv(io.BytesIO(content), encoding="utf-8-sig", dtype=str, keep_default_na=False, skip_blank_lines=False, nrows=MAX_BATCH_ROWS + 1)
+        frame = pd.read_csv(
+            io.BytesIO(content),
+            encoding="utf-8-sig",
+            dtype=str,
+            keep_default_na=False,
+            skip_blank_lines=False,
+            nrows=MAX_BATCH_ROWS + 1,
+        )
     except (UnicodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as error:
         raise ValueError("Could not read the file. Use a well-formed UTF-8 CSV.") from error
     if "review_text" not in frame.columns:
@@ -83,7 +102,17 @@ def export_csv(frame):
     safe = frame.copy()
     # CSV quoting alone does not stop spreadsheet formula execution.
     for column in safe.select_dtypes(include=["object", "string"]).columns:
-        safe[column] = safe[column].map(lambda value: "'" + value if isinstance(value, str) and (value.startswith(("\t", "\r", "\n")) or value.lstrip().startswith(("=", "+", "-", "@"))) else value)
+        safe[column] = safe[column].map(
+            lambda value: (
+                "'" + value
+                if isinstance(value, str)
+                and (
+                    value.startswith(("\t", "\r", "\n"))
+                    or value.lstrip().startswith(("=", "+", "-", "@"))
+                )
+                else value
+            )
+        )
     return safe.to_csv(index=False).encode("utf-8-sig")
 
 
@@ -97,7 +126,12 @@ def explain_review(pipeline, text, label, limit=12):
     features = vectorizer.transform([text]).tocoo()
     contributions = features.data * classifier.coef_[index, features.col]
     order = np.argsort(np.abs(contributions))[::-1][:limit]
-    return pd.DataFrame({"term": vectorizer.get_feature_names_out()[features.col[order]], "contribution": contributions[order]})
+    return pd.DataFrame(
+        {
+            "term": vectorizer.get_feature_names_out()[features.col[order]],
+            "contribution": contributions[order],
+        }
+    )
 
 
 def top_terms(pipeline, label, limit=15):
@@ -106,4 +140,9 @@ def top_terms(pipeline, label, limit=15):
         return pd.DataFrame()
     weights = classifier.coef_[list(pipeline.classes_).index(label)]
     indices = np.argsort(weights)[-limit:][::-1]
-    return pd.DataFrame({"term": pipeline.named_steps["tfidf"].get_feature_names_out()[indices], "weight": weights[indices]})
+    return pd.DataFrame(
+        {
+            "term": pipeline.named_steps["tfidf"].get_feature_names_out()[indices],
+            "weight": weights[indices],
+        }
+    )

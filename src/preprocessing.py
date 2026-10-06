@@ -1,4 +1,5 @@
 """Stateless normalization shared by training and inference."""
+
 import html
 import re
 import unicodedata
