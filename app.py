@@ -1,42 +1,27 @@
-"""Streamlit entry point; training is an explicit offline command."""
-
-import logging
+"""Thin Sentix AI entry point. No training at startup."""
 import os
-from pathlib import Path
-
 import streamlit as st
+import streamlit.components.v1 as components
+from sentix.predictor import load_model
+from sentix.mascot import render_senti
+from sentix.theme import inject_theme
+from sentix.views import render
 
-from src.predict import load_artifact
-from src.ui import render
-
-st.set_page_config(page_title="Review Sentiment Lab", page_icon="💬", layout="wide")
-ROOT = Path(__file__).resolve().parent
-MODEL_DIR = Path(os.environ.get("SENTIMENT_MODEL_DIR", str(ROOT / "models")))
-
+st.set_page_config(page_title="Sentix AI · Meet Senti", page_icon="🌱", layout="wide")
+inject_theme()
 
 @st.cache_resource
-def cached_model(directory, model_modified, metadata_modified):
-    return load_artifact(directory)
+def cached_model(directory: str):
+    return load_model()
 
-
-st.title("Review Sentiment Lab")
-st.caption("Explore customer feedback • Compare evidence • Understand predictions")
 try:
-    model_file = MODEL_DIR / "pipeline.joblib"
-    metadata_file = MODEL_DIR / "metadata.json"
-    model, metadata = cached_model(
-        str(MODEL_DIR), model_file.stat().st_mtime_ns, metadata_file.stat().st_mtime_ns
-    )
-except Exception:
-    logging.getLogger(__name__).exception("Model initialization failed")
-    st.error(
-        "The model could not be loaded. Check the artifact files and installed dependency versions."
-    )
+    predictor = cached_model(os.environ.get("SENTIMENT_MODEL_DIR", "models"))
+except Exception as error:
+    components.html(render_senti("idle", 0, "My thinking cap needs a little help."), height=380)
+    st.error("The model could not be loaded. Restore the matching model files and dependencies.")
+    st.caption(str(error))
     st.code("python -m pip install -r requirements.txt")
-    st.code("python -m src.train --config configs/default.yaml")
-    st.info(
-        "The app never trains during startup. See README.md for setup and recovery instructions."
-    )
+    st.info("Senti never trains at startup. Your existing model remains unchanged.")
     st.stop()
 
-render(model, metadata)
+render(predictor)
