@@ -1,6 +1,58 @@
-# Review Sentiment Lab
+# Sentix AI — meet Senti
 
-A CPU-friendly, reproducible Amazon review sentiment classifier: **negative / neutral / positive**. Explore individual predictions, batch reviews, model comparisons, confident mistakes and linear explanations in Streamlit.
+Sentix AI turns product reviews into understandable feedback with a real, calibrated sentiment model. Senti, an original animated seed companion, brings each prediction to life while keeping uncertainty and evidence visible.
+
+## Senti experience
+
+- **Live Review:** three sample buttons, persistent text/results, animated moods, predicted-class probability and three-class breakdown.
+- **Bulk Mode:** choose any CSV text column, analyze up to 5,000 rows, inspect counts, top reviews and a proportional mood crowd, then download a formula-safe CSV.
+- **Why? (Explain):** green/red word evidence from coefficient × TF-IDF positive-minus-negative score contributions; optional LIME then bounded leave-one-word-out fallback.
+- **Guess the Mood:** real locally saved reviews with rating-derived labels; independent human/model scoring. Missing samples use 20 clearly marked, unscored examples.
+- **Model Lab:** accuracy, macro F1, per-class results and confusion matrix loaded from hash-matched evaluation files.
+
+Senti is an original character, built entirely with inline SVG and CSS. It uses no external images, fonts, services or API keys. Animations support reduced motion and light/dark color schemes. The original demonstration remains in `sentix_mascot_app.py` as a visual reference; launch `app.py` for real ML predictions.
+
+The UI uses Streamlit 1.64's `st.iframe` to display the generated HTML because `components.v1.html` now emits a deprecation warning. `render_senti()` still returns a standalone HTML string compatible with the original component interface.
+
+```text
+app.py (cached model, theme, tabs)
+  └─ sentix/views.py ── mascot.py / bulk.py / explain.py / game.py
+          └─ sentix/predictor.py (one inference adapter)
+                  └─ src/predict.py (existing validated loader + pipeline)
+                          └─ models/pipeline.joblib + metadata.json
+Model Lab ── reports/metrics.json (artifact hash checked)
+```
+
+The existing artifact is **three-class calibrated logistic regression on word TF-IDF unigrams/bigrams**. There is no separate vectorizer or label encoder: preprocessing, vocabulary and classes live in the pipeline. Predictions preserve its decision policy. No retraining is needed or performed by the app.
+
+**Honest edge cases:** empty, over-20,000-character, invalid or unknown-vocabulary text returns `label="unavailable"`, null confidence and null probabilities, plus a message. This deliberate extension to the requested schema avoids inventing a neutral prediction. Valid predictions always return all three probabilities. The 0.60 threshold flags uncertainty only; neutral is learned. Binary artifacts remain unsupported by the existing validated loader; a future binary adapter would need an explicitly labeled abstention policy, not a fabricated neutral-class probability.
+
+Set `SENTIX_MAX_ROWS` to change the default 5,000-row batch limit. Files are capped at 10 MB, parsed only through the row limit plus one, and predictions run in chunks. The Product Mood Score is `50 × (1 + positive share − negative share)` among available predictions; unavailable rows are disclosed and excluded. Explanations are partial pre-calibration score contrasts, not probability decompositions; character features and intercepts are omitted, and n-grams are divided among constituent words. Nonlinear fallback explains at most 80 normalized words.
+
+### Install, test and run
+
+Use Python 3.14 and the exact pinned dependencies required by the saved artifact:
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m pytest -q -p no:cacheprovider
+python -m streamlit run app.py --browser.gatherUsageStats false
+```
+
+For runtime only, install `requirements.txt`. LIME is optional and is not needed for this model or the built-in fallback. After dependency installation, inference and all five tabs run offline with local artifacts. `SENTIMENT_MODEL_DIR` and `SENTIMENT_REPORTS_DIR` select alternate matching artifact/report directories. Restart the app after replacing model files.
+
+### Screenshot / GIF placeholder
+
+![Sentix AI live interface](docs/screenshots/senti-live.png)
+
+Add a recording at `docs/screenshots/senti-demo.gif` after recording your local app:
+
+1. Run the command above and open the displayed localhost URL at a 1280 × 900 window size.
+2. Start Windows Snipping Tool screen recording, selecting only the browser content.
+3. Record idle Senti for two seconds, then click Love, Hate and Meh with three seconds between clicks.
+4. Open Why? and click Explain this review; open Bulk Mode, upload `data/example_reviews.csv`, and click Analyze CSV.
+5. Stop and save the MP4 locally; optionally convert to GIF with `ffmpeg -i senti-demo.mp4 -vf "fps=12,scale=960:-1" docs/screenshots/senti-demo.gif` if FFmpeg is installed.
+6. Add the image link to this section. Record real output; screenshots are demonstrations, not benchmark evidence.
 
 ## Problem and data
 
@@ -127,21 +179,9 @@ docker run --rm -p 8501:8501 review-sentiment-lab
 
 Open the displayed local Streamlit URL. The build includes the pipeline and generated reports; raw CSVs and private error samples are excluded. Docker was not available in the implementation environment, so the container build remains unverified.
 
-## App and screenshots
+## Earlier interface screenshots
 
-- **Predict:** calibrated probability bars, a configurable uncertainty warning and highlighted word contributions.
-- **Batch:** validated CSV input, tabular results, unknown-vocabulary abstention and formula-safe CSV export.
-- **Model Comparison:** generated CV results, test metrics, source breakdown, ablations and calibration plot.
-- **Error Explorer:** generated most-confident errors, filtered by true/predicted label, source and confidence.
-- **Insights:** supporting and opposing n-grams for each class.
-- **About:** scope, limitations and downloadable model card.
-
-![Prediction screen](docs/screenshots/predict.jpg)
-![Illustrative mixed-review result](docs/screenshots/prediction-result.jpg)
-![Model comparison screen](docs/screenshots/comparison.jpg)
-
-The mixed-review screenshot shows a real failure on an illustrative input. Screenshots
-demonstrate the UI, not additional benchmark evidence.
+The images in docs/screenshots/predict.jpg, prediction-result.jpg and comparison.jpg document the previous interface. Use the recording instructions above for the current Senti experience.
 
 ## Structure and verification
 

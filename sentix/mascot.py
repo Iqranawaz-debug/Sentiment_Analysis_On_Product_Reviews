@@ -6,18 +6,32 @@ import random
 
 MESSAGES = {
     "idle": ["Paste a review and I'll tell you how people feel!"],
-    "positive": ["A little joy in every word!", "That sounds like a happy customer!", "This review made my day!"],
-    "negative": ["Oof. That experience needs some care.", "I hear a disappointed customer.", "Let's listen to what went wrong."],
-    "neutral": ["Somewhere in the middle.", "A calm, everyday kind of review.", "No big celebration or storm here."],
+    "positive": [
+        "A little joy in every word!",
+        "That sounds like a happy customer!",
+        "This review made my day!",
+    ],
+    "negative": [
+        "Oof. That experience needs some care.",
+        "I hear a disappointed customer.",
+        "Let's listen to what went wrong.",
+    ],
+    "neutral": [
+        "Somewhere in the middle.",
+        "A calm, everyday kind of review.",
+        "No big celebration or storm here.",
+    ],
 }
 
 
 def mood_state(mood: str, confidence: float) -> str:
     """Only actual high-confidence positive/negative predictions intensify."""
-    confidence = confidence if isinstance(confidence, (int, float)) and math.isfinite(confidence) else 0
-    if mood == "positive" and confidence >= .90:
+    confidence = (
+        confidence if isinstance(confidence, (int, float)) and math.isfinite(confidence) else 0
+    )
+    if mood == "positive" and confidence >= 0.90:
         return "ecstatic"
-    if mood == "negative" and confidence >= .90:
+    if mood == "negative" and confidence >= 0.90:
         return "very-upset"
     return mood if mood in MESSAGES else "idle"
 
@@ -29,7 +43,7 @@ def render_senti(mood: str, confidence: float, message: str | None = None) -> st
     bubble = html.escape(message or random.choice(MESSAGES[base]))
     eyes = '<g class="eyes"><ellipse cx="91" cy="123" rx="7" ry="10"/><ellipse cx="149" cy="123" rx="7" ry="10"/></g>'
     mouth = '<path d="M108 151 H132"/>'
-    extra = ''
+    extra = ""
     if base == "positive":
         eyes = '<path d="M80 125 Q91 107 102 125 M138 125 Q149 107 160 125" fill="none"/>'
         mouth = '<path d="M103 145 Q120 168 137 145"/>'
@@ -44,7 +58,7 @@ def render_senti(mood: str, confidence: float, message: str | None = None) -> st
     if state == "very-upset":
         eyes = '<circle cx="91" cy="125" r="7"/><circle cx="149" cy="125" r="7"/><path d="m79 106 22 7 M139 113l22-7"/>'
     return f'''<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>
-    :root{{color-scheme:light dark}}body{{margin:0;background:transparent;font:15px system-ui;text-align:center;color:#173e38}}
+    :root{{color-scheme:normal;background:transparent}}body{{margin:0;background:transparent;font:15px system-ui;text-align:center;color:#173e38}}
     .scene{{animation:arrive .35s ease-out;padding:12px 6px}}.bubble{{margin:auto;max-width:300px;padding:14px 18px;border-radius:20px;background:#edf8f2;color:#173e38;border:1px solid #99cbb8;line-height:1.5}}
     svg{{width:min(100%,270px);height:265px;overflow:visible}}.body{{transform-origin:120px 210px;animation:breathe 3s ease-in-out infinite}}
     .positive .body{{animation:bounce 1s ease-in-out infinite}}.ecstatic .body{{animation:bigbounce .65s ease-in-out infinite}}.negative .body{{animation:sway 2s ease-in-out infinite}}.very-upset .body{{animation:shake .35s ease-in-out infinite}}
@@ -62,5 +76,5 @@ def render_senti(mood: str, confidence: float, message: str | None = None) -> st
     <path d="M91 207l-8 10 M149 207l8 10"/>
     <path d="M120 61C66 61 51 109 61 162Q64 210 120 211Q176 210 179 162C189 109 174 61 120 61Z" fill="#a5ddc4"/>
     <path d="M99 182q21 12 42 0" stroke="#75b99f" fill="none"/>
-    <g fill="{'#ed7773' if state == 'very-upset' else '#edaaa0'}" stroke="none" opacity=".8"><ellipse cx="77" cy="144" rx="12" ry="7"/><ellipse cx="163" cy="144" rx="12" ry="7"/></g>
+    <g fill="{"#ed7773" if state == "very-upset" else "#edaaa0"}" stroke="none" opacity=".8"><ellipse cx="77" cy="144" rx="12" ry="7"/><ellipse cx="163" cy="144" rx="12" ry="7"/></g>
     <g fill="#234d42">{eyes}</g><g fill="none">{mouth}</g>{extra}</g></svg></div></body></html>'''

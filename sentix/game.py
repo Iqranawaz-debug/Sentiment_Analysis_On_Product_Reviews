@@ -1,22 +1,35 @@
 """Guess the Mood: humans and model scored against known labels when available."""
+
 import os
 import random
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from sentix.mascot import render_senti
 
 FALLBACK = [
-    "I love the bright display.", "It broke after one day.", "It is an ordinary product.",
-    "Excellent quality and fast shipping.", "The packaging was damaged.", "It does the job.",
-    "The battery lasts all week.", "A complete waste of money.", "Neither good nor bad.",
-    "Delicious and fresh every time.", "The food tasted stale.", "An average purchase.",
-    "Perfect fit and very comfortable.", "The size was completely wrong.", "It works as described.",
-    "Fantastic value for the price.", "Customer service never replied.", "Some things work, some do not.",
-    "I would happily buy this again.", "I returned it immediately.",
+    "I love the bright display.",
+    "It broke after one day.",
+    "It is an ordinary product.",
+    "Excellent quality and fast shipping.",
+    "The packaging was damaged.",
+    "It does the job.",
+    "The battery lasts all week.",
+    "A complete waste of money.",
+    "Neither good nor bad.",
+    "Delicious and fresh every time.",
+    "The food tasted stale.",
+    "An average purchase.",
+    "Perfect fit and very comfortable.",
+    "The size was completely wrong.",
+    "It works as described.",
+    "Fantastic value for the price.",
+    "Customer service never replied.",
+    "Some things work, some do not.",
+    "I would happily buy this again.",
+    "I returned it immediately.",
 ]
 
 
@@ -48,7 +61,9 @@ def new_round(reviews: list[dict]) -> None:
 
 def render(predictor) -> None:
     st.subheader("Can you read the mood?")
-    directory = Path(os.environ.get("SENTIMENT_REPORTS_DIR", Path(__file__).resolve().parents[1] / "reports"))
+    directory = Path(
+        os.environ.get("SENTIMENT_REPORTS_DIR", Path(__file__).resolve().parents[1] / "reports")
+    )
     path = directory / "predictions.csv"
     reviews = load_reviews(str(path), path.stat().st_mtime_ns if path.exists() else 0)
     if "game_review" not in st.session_state:
@@ -57,22 +72,42 @@ def render(predictor) -> None:
         st.session_state.game_score = [0, 0]
     you, senti = st.session_state.game_score
     st.write(f"You {you} : {senti} Senti")
-    st.caption("One point each for matching the real rating-derived label. Both can score. Unlabeled examples are practice only.")
+    st.caption(
+        "One point each for matching the real rating-derived label. Both can score. Unlabeled examples are practice only."
+    )
     review = st.session_state.game_review
     st.write(review["review_text"])
-    st.caption("Real held-out review" if review["true_label"] else "Built-in example · no ground truth · unscored")
-    for column, (name, label) in zip(st.columns(3), [("Happy", "positive"), ("Neutral", "neutral"), ("Sad", "negative")]):
+    st.caption(
+        "Real held-out review"
+        if review["true_label"]
+        else "Built-in example · no ground truth · unscored"
+    )
+    for column, (name, label) in zip(
+        st.columns(3), [("Happy", "positive"), ("Neutral", "neutral"), ("Sad", "negative")]
+    ):
         if column.button(name, disabled=st.session_state.game_reveal is not None):
             result = predictor.predict(review["review_text"])
-            points = score_round(label, result["label"], review["true_label"]) if result["status"] == "ok" else (0, 0)
+            points = (
+                score_round(label, result["label"], review["true_label"])
+                if result["status"] == "ok"
+                else (0, 0)
+            )
             st.session_state.game_score = [you + points[0], senti + points[1]]
             st.session_state.game_reveal = (label, result, points)
             st.rerun()
     if st.session_state.game_reveal:
         guess, result, points = st.session_state.game_reveal
-        st.write(f'You guessed **{guess}**. Senti predicted **{result["label"]}**. Real label: **{review["true_label"] or "unknown"}**.')
-        message = "You read that beautifully!" if points[0] > points[1] else "A point for my thinking cap!" if points[1] > points[0] else "We learn by listening. Another round?"
-        components.html(render_senti(result["label"], result["confidence"], message), height=380)
+        st.write(
+            f"You guessed **{guess}**. Senti predicted **{result['label']}**. Real label: **{review['true_label'] or 'unknown'}**."
+        )
+        message = (
+            "You read that beautifully!"
+            if points[0] > points[1]
+            else "A point for my thinking cap!"
+            if points[1] > points[0]
+            else "We learn by listening. Another round?"
+        )
+        st.iframe(render_senti(result["label"], result["confidence"], message), height=380)
         if st.button("Next review"):
             new_round(reviews)
             st.rerun()

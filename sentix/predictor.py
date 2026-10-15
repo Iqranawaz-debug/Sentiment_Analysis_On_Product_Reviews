@@ -28,8 +28,12 @@ class Predictor:
         results = []
         valid, indices = [], []
         for text in texts:
-            result = {"label": "unavailable", "confidence": None,
-                      "probabilities": dict.fromkeys(LABELS), "status": "unavailable"}
+            result = {
+                "label": "unavailable",
+                "confidence": None,
+                "probabilities": dict.fromkeys(LABELS),
+                "status": "unavailable",
+            }
             try:
                 validate_review(text)
                 indices.append(len(results))
@@ -38,17 +42,22 @@ class Predictor:
                 result["message"] = str(error)
             results.append(result)
         for start in range(0, len(valid), 256):
-            rows = predict_reviews(self.model, valid[start:start + 256])
+            rows = predict_reviews(self.model, valid[start : start + 256])
             for offset, row in enumerate(rows.itertuples()):
                 target = indices[start + offset]
                 if row.status != "ok":
                     results[target]["message"] = "Senti needs a few familiar English words."
                     continue
-                probabilities = {label: float(getattr(row, f"probability_{label}"))
-                                 for label in LABELS}
+                probabilities = {
+                    label: float(getattr(row, f"probability_{label}")) for label in LABELS
+                }
                 label = str(row.sentiment).lower()
-                results[target] = {"label": label, "confidence": probabilities[label],
-                                   "probabilities": probabilities, "status": "ok"}
+                results[target] = {
+                    "label": label,
+                    "confidence": probabilities[label],
+                    "probabilities": probabilities,
+                    "status": "ok",
+                }
         return results
 
 

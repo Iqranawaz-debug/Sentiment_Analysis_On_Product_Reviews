@@ -1,9 +1,9 @@
 """Signed positive-minus-negative evidence, not a causal explanation."""
+
 import html
 import re
 from functools import lru_cache
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -30,8 +30,11 @@ def explain(text: str, predictor=None) -> list[tuple[str, float]]:
         estimator = linear_estimator(predictor.model)
         classes = list(estimator.classes_)
         coefficients = estimator.coef_
-        weights = (coefficients[classes.index("positive")] - coefficients[classes.index("negative")]
-                   if coefficients.shape[0] > 1 else coefficients[0])
+        weights = (
+            coefficients[classes.index("positive")] - coefficients[classes.index("negative")]
+            if coefficients.shape[0] > 1
+            else coefficients[0]
+        )
         vectorizer = predictor.model.named_steps["tfidf"]
         features = vectorizer.transform([text]).tocoo()
         names = vectorizer.get_feature_names_out()
@@ -60,7 +63,8 @@ def perturbation(text: str, predictor) -> list[tuple[str, float]]:
         classes = list(predictor.model.classes_)
         positive, negative = classes.index("positive"), classes.index("negative")
         explanation = LimeTextExplainer(class_names=classes, random_state=42).explain_instance(
-            text, probabilities, labels=(positive, negative), num_features=20, num_samples=128)
+            text, probabilities, labels=(positive, negative), num_features=20, num_samples=128
+        )
         values = dict(explanation.as_list(label=positive))
         for word, weight in explanation.as_list(label=negative):
             values[word] = values.get(word, 0) - weight
@@ -74,7 +78,10 @@ def perturbation(text: str, predictor) -> list[tuple[str, float]]:
         try:
             probabilities = predictor.model.predict_proba(variants)
             classes = list(predictor.model.classes_)
-            contrasts = probabilities[:, classes.index("positive")] - probabilities[:, classes.index("negative")]
+            contrasts = (
+                probabilities[:, classes.index("positive")]
+                - probabilities[:, classes.index("negative")]
+            )
             return list(zip(words, (contrasts[0] - contrasts[1:]).astype(float)))
         except Exception:
             return []
@@ -90,9 +97,9 @@ def highlight(text: str, contributions: list[tuple[str, float]]) -> str:
         safe = html.escape(token)
         if value:
             rgb = "83,184,130" if value > 0 else "232,111,111"
-            safe = f'<mark style="background:rgba({rgb},{.15 + .65 * abs(value) / scale:.3f});color:inherit;border-radius:4px;padding:2px" title="{value:+.4f}">{safe}</mark>'
+            safe = f'<mark style="background:rgba({rgb},{0.15 + 0.65 * abs(value) / scale:.3f});color:inherit;border-radius:4px;padding:2px" title="{value:+.4f}">{safe}</mark>'
         parts.append(safe)
-    return '<div class="explanation">' + "".join(parts) + '</div>'
+    return '<div class="explanation">' + "".join(parts) + "</div>"
 
 
 def render(predictor) -> None:
@@ -115,7 +122,15 @@ def render(predictor) -> None:
             st.info("No word explanation is available for this review.")
             return
         st.markdown(highlight(text, contributions), unsafe_allow_html=True)
-        st.caption("Green pushes toward positive; red toward negative. Linear explanations use pre-calibration positive-minus-negative scores, omit character features and intercepts, and divide n-grams among words. Text is normalized. Nonlinear fallback uses at most 80 words and probability perturbations.")
+        st.caption(
+            "Green pushes toward positive; red toward negative. Linear explanations use pre-calibration positive-minus-negative scores, omit character features and intercepts, and divide n-grams among words. Text is normalized. Nonlinear fallback uses at most 80 words and probability perturbations."
+        )
         for column, sign in zip(st.columns(2), (1, -1)):
-            selected = sorted((item for item in contributions if item[1] * sign > 0), key=lambda item: item[1] * sign, reverse=True)[:5]
-            column.dataframe(pd.DataFrame(selected, columns=["Word", "Contribution"]), hide_index=True)
+            selected = sorted(
+                (item for item in contributions if item[1] * sign > 0),
+                key=lambda item: item[1] * sign,
+                reverse=True,
+            )[:5]
+            column.dataframe(
+                pd.DataFrame(selected, columns=["Word", "Contribution"]), hide_index=True
+            )

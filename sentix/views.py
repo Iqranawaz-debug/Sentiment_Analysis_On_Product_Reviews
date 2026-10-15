@@ -1,11 +1,11 @@
 """Live review and saved evaluation views."""
+
 import importlib
 import os
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 from sentix.mascot import render_senti
 from src.ui import load_reports
@@ -40,10 +40,18 @@ def live_review(predictor) -> None:
         result = st.session_state.get("result")
         if text.strip() and result:
             if result["status"] == "ok":
-                st.markdown(f'<span class="verdict">{result["label"].title()}</span>', unsafe_allow_html=True)
-                st.progress(result["confidence"], text=f'Predicted-class probability · {result["confidence"]:.1%}')
-                st.bar_chart(pd.Series(result["probabilities"], name="Probability"), color="#65b998")
-                if result["confidence"] < .60:
+                st.markdown(
+                    f'<span class="verdict">{result["label"].title()}</span>',
+                    unsafe_allow_html=True,
+                )
+                st.progress(
+                    result["confidence"],
+                    text=f"Predicted-class probability · {result['confidence']:.1%}",
+                )
+                st.bar_chart(
+                    pd.Series(result["probabilities"], name="Probability"), color="#65b998"
+                )
+                if result["confidence"] < 0.60:
                     st.info("Senti is uncertain. Read the review alongside this prediction.")
                 st.caption("Probabilities describe model uncertainty, not guaranteed correctness.")
             else:
@@ -51,7 +59,12 @@ def live_review(predictor) -> None:
     with right:
         result = st.session_state.get("result")
         valid = text.strip() and result and result["status"] == "ok"
-        components.html(render_senti(result["label"] if valid else "idle", result["confidence"] if valid else 0), height=380)
+        st.iframe(
+            render_senti(
+                result["label"] if valid else "idle", result["confidence"] if valid else 0
+            ),
+            height=380,
+        )
         st.caption("SENTI / your customer-listening companion")
 
 
@@ -62,24 +75,48 @@ def read_metrics(directory: str, metadata: dict, modified: int) -> dict:
 
 def model_lab(predictor) -> None:
     st.subheader("The brain behind the face")
-    st.write("TF-IDF features → calibrated classifier → learned negative / neutral / positive labels.")
-    directory = Path(os.environ.get("SENTIMENT_REPORTS_DIR", Path(__file__).resolve().parents[1] / "reports"))
+    st.write(
+        "TF-IDF features → calibrated classifier → learned negative / neutral / positive labels."
+    )
+    directory = Path(
+        os.environ.get("SENTIMENT_REPORTS_DIR", Path(__file__).resolve().parents[1] / "reports")
+    )
     try:
-        report = read_metrics(str(directory), predictor.metadata, (directory / "metrics.json").stat().st_mtime_ns)
+        report = read_metrics(
+            str(directory), predictor.metadata, (directory / "metrics.json").stat().st_mtime_ns
+        )
         metrics = report["test"]
         a, b = st.columns(2)
-        a.metric("Held-out accuracy", f'{metrics["accuracy"]:.2%}')
-        b.metric("Macro F1", f'{metrics["macro_f1"]:.3f}')
-        st.caption("Saved evaluation verified against the artifact hash. Rows = actual; columns = predicted.")
-        st.dataframe(pd.DataFrame(metrics["confusion_matrix"], index=metrics["class_order"], columns=metrics["class_order"]))
-        st.dataframe(pd.DataFrame({k: v for k, v in metrics["per_class"].items() if k in metrics["class_order"]}).T)
-        st.caption("Neutral reviews are difficult for this model. Accuracy alone hides class imbalance.")
+        a.metric("Held-out accuracy", f"{metrics['accuracy']:.2%}")
+        b.metric("Macro F1", f"{metrics['macro_f1']:.3f}")
+        st.caption(
+            "Saved evaluation verified against the artifact hash. Rows = actual; columns = predicted."
+        )
+        st.dataframe(
+            pd.DataFrame(
+                metrics["confusion_matrix"],
+                index=metrics["class_order"],
+                columns=metrics["class_order"],
+            )
+        )
+        st.dataframe(
+            pd.DataFrame(
+                {k: v for k, v in metrics["per_class"].items() if k in metrics["class_order"]}
+            ).T
+        )
+        st.caption(
+            "Neutral reviews are difficult for this model. Accuracy alone hides class imbalance."
+        )
     except Exception:
-        st.info("Senti's matching evaluation reports are unavailable. Run the notebook/evaluation workflow to generate metrics; no scores are invented here.")
+        st.info(
+            "Senti's matching evaluation reports are unavailable. Run the notebook/evaluation workflow to generate metrics; no scores are invented here."
+        )
 
 
 def render(predictor) -> None:
-    tabs = st.tabs(["🐱 Live Review", "📦 Bulk Mode", "🔦 Why? (Explain)", "🎮 Guess the Mood", "📊 Model Lab"])
+    tabs = st.tabs(
+        ["🐱 Live Review", "📦 Bulk Mode", "🔦 Why? (Explain)", "🎮 Guess the Mood", "📊 Model Lab"]
+    )
     with tabs[0]:
         live_review(predictor)
     for tab, module in zip(tabs[1:4], ("bulk", "explain", "game")):
