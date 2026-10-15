@@ -1,0 +1,411 @@
+{
+  "artifact_sha256": "85edf60258b04b218bde4d4f7c954176454ee7f42ddeb6816985e53fd72617a0",
+  "scope": "24 hand-authored English sanity cases, 8 per class; not an independent benchmark. Labels are author judgments; short neutral phrases can be ambiguous.",
+  "diagnosis": {
+    "text": "Absolutely hate it",
+    "prediction": {
+      "label": "positive",
+      "confidence": 0.6488919076274651,
+      "probabilities": {
+        "negative": 0.34114017339548364,
+        "neutral": 0.009967918977051389,
+        "positive": 0.6488919076274651
+      },
+      "status": "ok"
+    },
+    "features": [
+      {
+        "term": "absolutely",
+        "tfidf": 0.41481024113276466,
+        "coefficients": {
+          "negative": 0.20902633280442173,
+          "neutral": -1.1445248347936519,
+          "positive": 0.935498501989229
+        },
+        "contributions": {
+          "negative": 0.0867062635136997,
+          "neutral": -0.47476062270319236,
+          "positive": 0.3880543591894922
+        }
+      },
+      {
+        "term": "hate",
+        "tfidf": 0.5235076552351204,
+        "coefficients": {
+          "negative": 0.6966986195178693,
+          "neutral": -0.685209013359548,
+          "positive": -0.01148960615832915
+        },
+        "contributions": {
+          "negative": 0.3647270607093451,
+          "neutral": -0.3587121639298273,
+          "positive": -0.006014896779521893
+        }
+      },
+      {
+        "term": "hate it",
+        "tfidf": 0.7333802098792843,
+        "coefficients": {
+          "negative": 0.3924841339014177,
+          "neutral": -0.24150984249827565,
+          "positive": -0.15097429140314333
+        },
+        "contributions": {
+          "negative": 0.2878400964949108,
+          "neutral": -0.1771185389792983,
+          "positive": -0.1107215575156135
+        }
+      },
+      {
+        "term": "it",
+        "tfidf": 0.12659252157620113,
+        "coefficients": {
+          "negative": 0.12634392508510342,
+          "neutral": -0.15793181668375925,
+          "positive": 0.03158789159865258
+        },
+        "contributions": {
+          "negative": 0.015994196062357895,
+          "neutral": -0.019992986911107433,
+          "positive": 0.003998790848749129
+        }
+      }
+    ],
+    "absent_features": [
+      "absolutely hate"
+    ],
+    "intercepts": {
+      "negative": -0.004618208544150128,
+      "neutral": -0.721978994785504,
+      "positive": 0.7265972033356934
+    },
+    "raw_scores": {
+      "negative": 0.7506494082361633,
+      "neutral": -1.7525633073089293,
+      "positive": 1.0019138990787995
+    },
+    "ngram_range": [
+      1,
+      2
+    ],
+    "class_weight": "balanced",
+    "calibration": "sigmoid on disjoint training calibration subset"
+  },
+  "accuracy": 0.5833333333333334,
+  "correct": 14,
+  "total": 24,
+  "reviews": [
+    {
+      "text": "I love it",
+      "expected": "positive",
+      "label": "positive",
+      "confidence": 0.9896054604694596,
+      "probabilities": {
+        "negative": 0.001750640788900916,
+        "neutral": 0.008643898741639455,
+        "positive": 0.9896054604694596
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Absolutely love it",
+      "expected": "positive",
+      "label": "positive",
+      "confidence": 0.979759537968101,
+      "probabilities": {
+        "negative": 0.01311343643086189,
+        "neutral": 0.007127025601037202,
+        "positive": 0.979759537968101
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Excellent product",
+      "expected": "positive",
+      "label": "positive",
+      "confidence": 0.9697213765761369,
+      "probabilities": {
+        "negative": 0.009818492296728772,
+        "neutral": 0.02046013112713442,
+        "positive": 0.9697213765761369
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Works perfectly",
+      "expected": "positive",
+      "label": "positive",
+      "confidence": 0.93829719730358,
+      "probabilities": {
+        "negative": 0.034873003646197664,
+        "neutral": 0.0268297990502224,
+        "positive": 0.93829719730358
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Great quality",
+      "expected": "positive",
+      "label": "positive",
+      "confidence": 0.9728233402522759,
+      "probabilities": {
+        "negative": 0.01105827823971248,
+        "neutral": 0.01611838150801158,
+        "positive": 0.9728233402522759
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Very happy with this",
+      "expected": "positive",
+      "label": "positive",
+      "confidence": 0.9874127828045844,
+      "probabilities": {
+        "negative": 0.006849139911052056,
+        "neutral": 0.00573807728436351,
+        "positive": 0.9874127828045844
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Highly recommend",
+      "expected": "positive",
+      "label": "positive",
+      "confidence": 0.9947526929465232,
+      "probabilities": {
+        "negative": 0.0013873864816652498,
+        "neutral": 0.0038599205718116178,
+        "positive": 0.9947526929465232
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Not bad at all",
+      "expected": "positive",
+      "label": "negative",
+      "confidence": 0.8393833093182383,
+      "probabilities": {
+        "negative": 0.8393833093182383,
+        "neutral": 0.14192335086317287,
+        "positive": 0.01869333981858894
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "Absolutely hate it",
+      "expected": "negative",
+      "label": "positive",
+      "confidence": 0.6488919076274651,
+      "probabilities": {
+        "negative": 0.34114017339548364,
+        "neutral": 0.009967918977051389,
+        "positive": 0.6488919076274651
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "I hate it",
+      "expected": "negative",
+      "label": "positive",
+      "confidence": 0.6174299180959609,
+      "probabilities": {
+        "negative": 0.36437983395438234,
+        "neutral": 0.01819024794965676,
+        "positive": 0.6174299180959609
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "Terrible product",
+      "expected": "negative",
+      "label": "negative",
+      "confidence": 0.9433374210865452,
+      "probabilities": {
+        "negative": 0.9433374210865452,
+        "neutral": 0.02146466706832776,
+        "positive": 0.03519791184512711
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "It broke immediately",
+      "expected": "negative",
+      "label": "positive",
+      "confidence": 0.4981335705292671,
+      "probabilities": {
+        "negative": 0.4909326427644132,
+        "neutral": 0.010933786706319656,
+        "positive": 0.4981335705292671
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "Waste of money",
+      "expected": "negative",
+      "label": "negative",
+      "confidence": 0.9570495922179003,
+      "probabilities": {
+        "negative": 0.9570495922179003,
+        "neutral": 0.002780087768607105,
+        "positive": 0.04017032001349259
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Not good",
+      "expected": "negative",
+      "label": "negative",
+      "confidence": 0.9155869245595665,
+      "probabilities": {
+        "negative": 0.9155869245595665,
+        "neutral": 0.047412960054986616,
+        "positive": 0.03700011538544689
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Does not work",
+      "expected": "negative",
+      "label": "negative",
+      "confidence": 0.8564057024404665,
+      "probabilities": {
+        "negative": 0.8564057024404665,
+        "neutral": 0.10592961348131481,
+        "positive": 0.037664684078218595
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "I do not recommend it",
+      "expected": "negative",
+      "label": "negative",
+      "confidence": 0.8861205056595791,
+      "probabilities": {
+        "negative": 0.8861205056595791,
+        "neutral": 0.008038308585882167,
+        "positive": 0.10584118575453871
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "It is average",
+      "expected": "neutral",
+      "label": "positive",
+      "confidence": 0.6221880422378123,
+      "probabilities": {
+        "negative": 0.030249614672371566,
+        "neutral": 0.3475623430898161,
+        "positive": 0.6221880422378123
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "It is okay",
+      "expected": "neutral",
+      "label": "neutral",
+      "confidence": 0.83761559833469,
+      "probabilities": {
+        "negative": 0.08027346106225258,
+        "neutral": 0.83761559833469,
+        "positive": 0.08211094060305744
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Nothing special",
+      "expected": "neutral",
+      "label": "negative",
+      "confidence": 0.5705743069775152,
+      "probabilities": {
+        "negative": 0.5705743069775152,
+        "neutral": 0.21438732149424075,
+        "positive": 0.21503837152824404
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "Neither good nor bad",
+      "expected": "neutral",
+      "label": "negative",
+      "confidence": 0.7493457614290211,
+      "probabilities": {
+        "negative": 0.7493457614290211,
+        "neutral": 0.11411068097844045,
+        "positive": 0.13654355759253833
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "An ordinary product",
+      "expected": "neutral",
+      "label": "positive",
+      "confidence": 0.6159092502786745,
+      "probabilities": {
+        "negative": 0.24031140600997006,
+        "neutral": 0.14377934371135537,
+        "positive": 0.6159092502786745
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "It is just acceptable",
+      "expected": "neutral",
+      "label": "neutral",
+      "confidence": 0.5438861179646013,
+      "probabilities": {
+        "negative": 0.07163533162606173,
+        "neutral": 0.5438861179646013,
+        "positive": 0.384478550409337
+      },
+      "status": "ok",
+      "correct": true
+    },
+    {
+      "text": "Average quality",
+      "expected": "neutral",
+      "label": "positive",
+      "confidence": 0.7614404012649516,
+      "probabilities": {
+        "negative": 0.059418373570174224,
+        "neutral": 0.1791412251648742,
+        "positive": 0.7614404012649516
+      },
+      "status": "ok",
+      "correct": false
+    },
+    {
+      "text": "It is mediocre",
+      "expected": "neutral",
+      "label": "positive",
+      "confidence": 0.7923504086065921,
+      "probabilities": {
+        "negative": 0.09806584127362618,
+        "neutral": 0.10958375011978165,
+        "positive": 0.7923504086065921
+      },
+      "status": "ok",
+      "correct": false
+    }
+  ]
+}

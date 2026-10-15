@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from sentix.mascot import render_senti
+from sentix.mascot import presentation_mood, render_senti
 from src.ui import load_reports
 
 SAMPLES = {
@@ -19,6 +19,12 @@ SAMPLES = {
 
 def set_sample(text: str) -> None:
     st.session_state.review = text
+    st.session_state.sample_pending = True
+
+
+def clear_review_result() -> None:
+    """Discard the old prediction as soon as Streamlit receives an edit."""
+    st.session_state.result = None
 
 
 def live_review(predictor) -> None:
@@ -28,9 +34,18 @@ def live_review(predictor) -> None:
         st.caption("Try a sample, or let Senti read your own.")
         for col, (label, text) in zip(st.columns(3), SAMPLES.items()):
             col.button(label, on_click=set_sample, args=(text,), width="stretch")
-        text = st.text_area("Your product review", key="review", height=160, max_chars=20000)
-        st.button("Read the mood", type="primary")
-        if text != st.session_state.get("analyzed_text"):
+        text = st.text_area(
+            "Your product review",
+            key="review",
+            height=160,
+            max_chars=20000,
+            on_change=clear_review_result,
+        )
+        st.html(
+            '<div class="editing-review-note">Editing review. Press Read the mood when ready.</div>'
+        )
+        requested = st.button("Read the mood", type="primary")
+        if requested or st.session_state.pop("sample_pending", False):
             try:
                 st.session_state.result = predictor.predict(text)
                 st.session_state.analyzed_text = text
@@ -38,34 +53,54 @@ def live_review(predictor) -> None:
                 st.session_state.result = None
                 st.warning("Senti couldn't read that just now. Try a shorter review.")
         result = st.session_state.get("result")
-        if text.strip() and result:
-            if result["status"] == "ok":
-                st.markdown(
-                    f'<span class="verdict">{result["label"].title()}</span>',
-                    unsafe_allow_html=True,
-                )
-                st.progress(
-                    result["confidence"],
-                    text=f"Predicted-class probability · {result['confidence']:.1%}",
-                )
-                st.bar_chart(
-                    pd.Series(result["probabilities"], name="Probability"), color="#65b998"
-                )
-                if result["confidence"] < 0.60:
-                    st.info("Senti is uncertain. Read the review alongside this prediction.")
-                st.caption("Probabilities describe model uncertainty, not guaranteed correctness.")
-            else:
-                st.info(result.get("message", "Senti needs a little more text."))
+        if text != st.session_state.get("analyzed_text"):
+            result = None
+            st.session_state.result = None
+            if text.strip():
+                st.info("Review changed. Press Read the mood.")
+        with st.container(key="live_verdict"):
+            show_result(text, result)
     with right:
         result = st.session_state.get("result")
         valid = text.strip() and result and result["status"] == "ok"
-        st.iframe(
-            render_senti(
-                result["label"] if valid else "idle", result["confidence"] if valid else 0
-            ),
-            height=380,
-        )
+        with st.container(key="live_mascot"):
+            st.iframe(
+                render_senti(
+                    presentation_mood(result) if valid else "idle",
+                    result["confidence"] if valid else 0,
+                ),
+                height=380,
+            )
         st.caption("SENTI / your customer-listening companion")
+
+
+def show_result(text: str, result: dict | None) -> None:
+    """Keep model probabilities intact while making uncertainty explicit."""
+    if text.strip() and result:
+        if result["status"] == "ok":
+            st.markdown(
+                f'<span class="verdict">{result["label"].title()}</span>',
+                unsafe_allow_html=True,
+            )
+            st.progress(
+                result["confidence"],
+                text=f"Predicted-class probability · {result['confidence']:.1%}",
+            )
+            st.bar_chart(pd.Series(result["probabilities"], name="Probability"), color="#65b998")
+            if presentation_mood(result) == "unsure":
+                st.info("Hmm, I'm not sure about this one. The model's label is tentative.")
+                top_two = sorted(
+                    result["probabilities"].items(), key=lambda item: item[1], reverse=True
+                )[:2]
+                st.write(
+                    "Top two: "
+                    + " · ".join(
+                        f"{label.title()} {probability:.1%}" for label, probability in top_two
+                    )
+                )
+            st.caption("Probabilities describe model uncertainty, not guaranteed correctness.")
+        else:
+            st.info(result.get("message", "Senti needs a little more text."))
 
 
 @st.cache_data

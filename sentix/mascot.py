@@ -2,10 +2,12 @@
 
 import html
 import math
+import os
 import random
 
 MESSAGES = {
     "idle": ["Paste a review and I'll tell you how people feel!"],
+    "unsure": ["Hmm, I'm not sure about this one"],
     "positive": [
         "A little joy in every word!",
         "That sounds like a happy customer!",
@@ -22,6 +24,22 @@ MESSAGES = {
         "No big celebration or storm here.",
     ],
 }
+
+
+def unsure_threshold() -> float:
+    """UI-only threshold; invalid configuration falls back to 0.70."""
+    try:
+        value = float(os.environ.get("SENTIX_UNSURE_THRESHOLD", "0.70"))
+        return value if math.isfinite(value) and 0 <= value <= 1 else 0.70
+    except ValueError:
+        return 0.70
+
+
+def presentation_mood(result: dict) -> str:
+    """Uncertainty changes Senti's face, never the saved model's decision."""
+    if result.get("status") != "ok":
+        return "idle"
+    return "unsure" if result["confidence"] < unsure_threshold() else result["label"]
 
 
 def mood_state(mood: str, confidence: float) -> str:
@@ -44,6 +62,10 @@ def render_senti(mood: str, confidence: float, message: str | None = None) -> st
     eyes = '<g class="eyes"><ellipse cx="91" cy="123" rx="7" ry="10"/><ellipse cx="149" cy="123" rx="7" ry="10"/></g>'
     mouth = '<path d="M108 151 H132"/>'
     extra = ""
+    if base == "unsure":
+        eyes += '<path d="M78 104q12-12 24-2 M139 106h22" fill="none"/>'
+        mouth = '<path d="M105 153q8-10 16 0t16 0"/>'
+        extra = '<text x="183" y="77" font-size="35" fill="#8a5d00" stroke="none">?</text>'
     if base == "positive":
         eyes = '<path d="M80 125 Q91 107 102 125 M138 125 Q149 107 160 125" fill="none"/>'
         mouth = '<path d="M103 145 Q120 168 137 145"/>'
