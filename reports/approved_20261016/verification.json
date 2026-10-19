@@ -1,0 +1,9 @@
+{
+  "production_unchanged": true,
+  "split_hashes_valid": true,
+  "disjoint_groups_and_text": true,
+  "regression_excluded": true,
+  "candidate_hashes_valid": true,
+  "prediction_probabilities_and_metrics_consistent": true,
+  "models_checked": 9
+}

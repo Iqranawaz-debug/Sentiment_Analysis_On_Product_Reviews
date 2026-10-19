@@ -1,0 +1,170 @@
+[
+  {
+    "name": "production",
+    "split": "test",
+    "log_loss": 0.39947152075341075,
+    "multiclass_brier_sum": 0.2073843382848411,
+    "ece_10_bins": 0.051187619980522674
+  },
+  {
+    "name": "production",
+    "split": "regression",
+    "log_loss": 0.7848711192017781,
+    "multiclass_brier_sum": 0.4728219259887962,
+    "ece_10_bins": 0.2579720197741734
+  },
+  {
+    "name": "production",
+    "split": "validation",
+    "log_loss": 0.38952919625461757,
+    "multiclass_brier_sum": 0.19738591551306692,
+    "ece_10_bins": 0.03318217761727572
+  },
+  {
+    "name": "baseline_fresh",
+    "split": "test",
+    "log_loss": 0.4177492857700507,
+    "multiclass_brier_sum": 0.2153121656844334,
+    "ece_10_bins": 0.03189148587210561
+  },
+  {
+    "name": "baseline_fresh",
+    "split": "regression",
+    "log_loss": 1.0573343049680755,
+    "multiclass_brier_sum": 0.6121898355785718,
+    "ece_10_bins": 0.3465635426519839
+  },
+  {
+    "name": "baseline_fresh",
+    "split": "validation",
+    "log_loss": 0.3911578085547148,
+    "multiclass_brier_sum": 0.2003153537556491,
+    "ece_10_bins": 0.039313734272320086
+  },
+  {
+    "name": "extra_short",
+    "split": "test",
+    "log_loss": 0.41538781415646553,
+    "multiclass_brier_sum": 0.21494980326618135,
+    "ece_10_bins": 0.022496995680228254
+  },
+  {
+    "name": "extra_short",
+    "split": "regression",
+    "log_loss": 0.9846369839762273,
+    "multiclass_brier_sum": 0.5927907133707321,
+    "ece_10_bins": 0.3169756064848163
+  },
+  {
+    "name": "extra_short",
+    "split": "validation",
+    "log_loss": 0.3864793488706938,
+    "multiclass_brier_sum": 0.19868142814043765,
+    "ece_10_bins": 0.036424062398790175
+  },
+  {
+    "name": "coverage_c1",
+    "split": "test",
+    "log_loss": 0.4182462473959961,
+    "multiclass_brier_sum": 0.21780244965274273,
+    "ece_10_bins": 0.024383398003789254
+  },
+  {
+    "name": "coverage_c1",
+    "split": "regression",
+    "log_loss": 1.0731732280918662,
+    "multiclass_brier_sum": 0.6580510016320232,
+    "ece_10_bins": 0.3532046397874834
+  },
+  {
+    "name": "coverage_c1",
+    "split": "validation",
+    "log_loss": 0.3913777504418824,
+    "multiclass_brier_sum": 0.20198155303768436,
+    "ece_10_bins": 0.03773014797171219
+  },
+  {
+    "name": "trigrams_c2",
+    "split": "test",
+    "log_loss": 0.4135824170347057,
+    "multiclass_brier_sum": 0.21489149050461004,
+    "ece_10_bins": 0.026910523742122893
+  },
+  {
+    "name": "trigrams_c2",
+    "split": "regression",
+    "log_loss": 0.9046505137024615,
+    "multiclass_brier_sum": 0.5535513341172722,
+    "ece_10_bins": 0.3170386758046017
+  },
+  {
+    "name": "trigrams_c2",
+    "split": "validation",
+    "log_loss": 0.3885237311989975,
+    "multiclass_brier_sum": 0.1985347054266742,
+    "ece_10_bins": 0.03646030172869594
+  },
+  {
+    "name": "short_calibration",
+    "split": "test",
+    "log_loss": 0.4433110432443744,
+    "multiclass_brier_sum": 0.238294490687424,
+    "ece_10_bins": 0.06021561432250406
+  },
+  {
+    "name": "short_calibration",
+    "split": "regression",
+    "log_loss": 1.067447036554264,
+    "multiclass_brier_sum": 0.6656217145881542,
+    "ece_10_bins": 0.34039399101708906
+  },
+  {
+    "name": "short_calibration",
+    "split": "validation",
+    "log_loss": 0.4109577740353827,
+    "multiclass_brier_sum": 0.21833670807770358,
+    "ece_10_bins": 0.05366529153596732
+  },
+  {
+    "name": "transformer",
+    "split": "test",
+    "log_loss": 0.5501997961957965,
+    "multiclass_brier_sum": 0.3128552558664579,
+    "ece_10_bins": 0.08447060662786374
+  },
+  {
+    "name": "transformer",
+    "split": "regression",
+    "log_loss": 0.539590664646,
+    "multiclass_brier_sum": 0.3078366960074724,
+    "ece_10_bins": 0.20512185245752335
+  },
+  {
+    "name": "hybrid_production",
+    "split": "test",
+    "log_loss": 0.40228920798458695,
+    "multiclass_brier_sum": 0.21270372572300617,
+    "ece_10_bins": 0.05584558712423905
+  },
+  {
+    "name": "hybrid_production",
+    "split": "regression",
+    "log_loss": 0.4762098794618513,
+    "multiclass_brier_sum": 0.23819713360430794,
+    "ece_10_bins": 0.08949006007911244
+  },
+  {
+    "name": "hybrid_trigrams_c2",
+    "split": "test",
+    "log_loss": 0.41452951514438463,
+    "multiclass_brier_sum": 0.21991547943343953,
+    "ece_10_bins": 0.04222329314411957
+  },
+  {
+    "name": "hybrid_trigrams_c2",
+    "split": "regression",
+    "log_loss": 0.473892541432432,
+    "multiclass_brier_sum": 0.2842812719104781,
+    "ece_10_bins": 0.10334909948198957
+  }
+]

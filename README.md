@@ -161,7 +161,105 @@ python -m src.evaluate --reports reports --update-readme README.md
 
 `make train`, `make evaluate`, `make app`, `make test`, and `make lint` wrap the corresponding commands. `SENTIMENT_MODEL_DIR` and `SENTIMENT_REPORTS_DIR` can point the app at another matching run. Model hashes prevent reporting results from a different artifact.
 
-### Optional transformer
+### Optional Deep Mode (approved int8 hybrid)
+
+**Fast Mode is the default** and uses the existing production model unchanged.
+Deep Mode is optional in the mode selector and applies to Live Review, CSV analysis,
+and Guess the Mood. It keeps the Fast prediction when its predicted-class probability
+is **>= 0.80**, and otherwise defers to the frozen int8 transformer. There is no
+additional neutral-class override: a confident neutral prediction stays with Fast.
+The explanation tab explicitly explains only the Fast model; the model-lab metrics
+remain the saved production evaluation. Changing mode clears old displayed results.
+
+Reference experiment results on the same 2,698 held-out reviews (316 short reviews):
+
+| Model | Accuracy | Macro-F1 | Short <=8 words | Long | Exposed regression | CPU ms/review | Model MB |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Fast / production | 85.58% | 0.5878 | 89.87% | 85.01% | 14/24 | 0.29 | 1.70 |
+| Int8 transformer alone | 75.87% | 0.5798 | 72.47% | 76.32% | 17/24 | 256.33 | 243.51 |
+| Deep / production hybrid | 84.21% | 0.6489 | 87.34% | 83.80% | 20/24 | 62.15 | 245.22 |
+
+These are warm CPU batch measurements, not single-request latency or deployment
+guarantees. Deep improves macro-F1 and neutral recall but lowers overall accuracy
+and needs much more memory/storage and inference time. The reference hybrid scores
+route saved model probabilities; timing separately executed conditional inference.
+Dynamic int8 quantization and different batch composition can slightly change outputs.
+The Streamlit integration test uses real conditional inference, with a predeclared
+macro-F1 tolerance of 0.005 and a required regression result of 20/24. Its measured
+results are in `reports/deep_mode_e2e/results.json` when that test has completed.
+
+The benchmark excludes the production sample and keeps train, calibration,
+validation, and test groups disjoint. Labels remain rating-derived, the test is
+short-review enriched, and the 24 examples are exposed regression cases only—not
+a tuning set or final benchmark. Full-precision transformer inference was not
+completed; these numbers describe the separate int8 derivative. Text is truncated
+to 256 transformer tokens; 143 reference test rows exceeded that limit. Full
+per-class metrics, confusion matrices and all candidate comparisons are in
+`reports/approved_20261016/REPORT.md`.
+
+#### Optional installation and first-use download
+
+```powershell
+python -m pip install -r requirements.txt -r requirements-deep.txt
+```
+
+`configs/deep_mode.json` contains the URL, pinned commit revision, expected SHA-256,
+cache location, and pinned upstream tokenizer/config hashes. **The int8 hosting URL
+and revision are clearly marked placeholders until the owner supplies the public
+Hugging Face repo and commit SHA.** Fast Mode works without them. Override without
+editing app logic:
+
+```powershell
+$env:SENTIX_DEEP_MODEL_URL = "https://huggingface.co/<account>/<repo>/resolve/<commit-sha>/state_dict.pt"
+$env:SENTIX_DEEP_REVISION = "<commit-sha>"
+# Approved hash is already in config; only override for an explicitly approved artifact.
+$env:SENTIX_DEEP_SHA256 = "dec75d628a2e0d47b3b2dd65d9d695531d375cc297d6747e9406b1ff16e35e95"
+streamlit run app.py
+```
+
+The first review requiring the transformer downloads approximately 244 MB over
+HTTPS to `.cache/sentix-deep/`, showing download/loading progress. No upstream
+full-precision weight download or training occurs at startup. Every asset is
+SHA-256-verified before loading; failed downloads are cleaned up and corrupt cache
+files are deleted. HTTPS-to-HTTP redirects are rejected. Valid cached assets work
+offline. Network, missing-dependency, checksum, or inference failures visibly fall
+back to the unchanged Fast prediction. No weights or caches are committed to Git
+or included in Docker build context. `SENTIX_DEEP_CACHE` changes the cache location.
+
+#### Artifact format and attribution
+
+The approved artifact is a **PyTorch `.pt` state dictionary containing packed dynamic
+int8 parameters**. The loader first checks the approved SHA-256, then uses
+`torch.load(..., weights_only=True, map_location="cpu")` with strict state loading.
+It never uses unrestricted pickle loading for Deep Mode and never retries with
+`weights_only=False`. PyTorch's restricted loader still uses a pickle-backed format;
+this is not a safetensors/ONNX file. Packed quantized parameters are not a drop-in
+safetensors replacement. Conversion would create a different artifact requiring
+its own checksum and end-to-end validation. Keep the config and expected hashes trusted.
+
+Credit: [CardiffNLP's Twitter-RoBERTa sentiment model](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest),
+licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The int8 copy is a
+**quantized, non-fine-tuned derivative** of revision
+`3216a57f2a0d9c45a2e6c20157c20c49fb4bf9c7`. Its original tweet domain differs from
+product reviews. The runtime currently pins Torch 2.14.1 and Transformers 5.20.1;
+the dynamic quantization API has deprecation warnings and will need maintained,
+revalidated upgrades.
+
+Verification commands:
+
+```powershell
+python -m pytest tests/test_deep_mode.py
+python -m scripts.verify_deep_mode
+```
+
+Until hosting is configured, the end-to-end test explicitly stages the local approved
+artifact in an ignored test cache. It drives the actual Streamlit CSV workflow on all
+2,698 test reviews and 24 regression cases, rejects any silent Fast fallback, and
+checks production model/metadata hashes before and after. HTTPS download success,
+checksum mismatch, offline fallback and mode-switch behavior have focused tests;
+real hosted downloading cannot be validated until the URL is supplied.
+
+### Separate optional transformer training experiment
 
 ```bash
 python -m pip install -r requirements-transformer.txt

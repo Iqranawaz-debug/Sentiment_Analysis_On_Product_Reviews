@@ -12,6 +12,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.pipeline import Pipeline
 
 from src.data import LABELS, sha256_file
+from src.decision import DecisionPolicy
 from src.explain import explain_review, top_terms  # noqa: F401
 from src.preprocessing import validate_review
 
@@ -38,7 +39,9 @@ def load_artifact(directory):
             not isinstance(pipeline, Pipeline)
             or set(pipeline.classes_) != set(LABELS)
             or "tfidf" not in pipeline.named_steps
-            or not isinstance(pipeline.named_steps.get("clf"), CalibratedClassifierCV)
+            or not isinstance(
+                pipeline.named_steps.get("clf"), (CalibratedClassifierCV, DecisionPolicy)
+            )
         ):
             raise ValueError("Model does not match the three-class text pipeline contract.")
     except FileNotFoundError as error:
@@ -59,6 +62,9 @@ def predict_reviews(pipeline, texts, threshold=0.60):
     for text in texts:
         validate_review(text)
     features = pipeline.named_steps["tfidf"].transform(texts)
+    vectorizer = pipeline.named_steps["tfidf"]
+    if hasattr(vectorizer, "named_steps") and "columns" in vectorizer.named_steps:
+        features = vectorizer.named_steps["columns"].named_transformers_["text"].transform(texts)
     known = np.asarray(features.getnnz(axis=1)).ravel() > 0
     result = pd.DataFrame(
         {
@@ -71,7 +77,8 @@ def predict_reviews(pipeline, texts, threshold=0.60):
         probabilities = pipeline.predict_proba(texts)
         for index, label in enumerate(pipeline.classes_):
             result[f"probability_{label}"] = probabilities[:, index]
-        result["model_probability"] = probabilities.max(axis=1)
+        indices = np.array([list(pipeline.classes_).index(label) for label in result.sentiment])
+        result["model_probability"] = probabilities[np.arange(len(texts)), indices]
     elif hasattr(pipeline, "decision_function"):
         scores = pipeline.decision_function(texts)
         for index, label in enumerate(pipeline.classes_):

@@ -11,6 +11,8 @@ from src.preprocess import clean_text, validate_review
 
 def linear_estimator(pipeline):
     classifier = pipeline.named_steps["clf"]
+    if hasattr(classifier, "calibrated_estimator"):
+        classifier = classifier.calibrated_estimator
     if hasattr(classifier, "calibrated_classifiers_"):
         classifier = classifier.calibrated_classifiers_[0].estimator
     if hasattr(classifier, "estimator"):
@@ -56,9 +58,9 @@ def highlight_review(text, contributions):
     normalized = clean_text(text)
     terms = {}
     for row in contributions.itertuples():
-        if row.term.startswith("char__"):
+        if row.term.startswith(("char__", "structure__")):
             continue
-        term = row.term.removeprefix("word__")
+        term = row.term.removeprefix("word__").removeprefix("text__")
         for word in term.split():
             terms[word] = terms.get(word, 0) + row.contribution
     parts = []

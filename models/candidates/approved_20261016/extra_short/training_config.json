@@ -1,0 +1,91 @@
+{
+  "name": "extra_short",
+  "config": {
+    "name": "extra_short",
+    "extra": true,
+    "min_df": 2,
+    "max_features": 50000,
+    "ngrams": [
+      1,
+      2
+    ],
+    "C": 2.0,
+    "seed": 20261016,
+    "class_weight": "balanced",
+    "fit_rows": 10066,
+    "calibration_rows": 2519,
+    "calibration": "sigmoid on disjoint reserved rows",
+    "protocol_sha256": "2f2a2a133652796e3cdcc053c2ddb469a3977146bee8170e962e469de40705fe"
+  },
+  "train_seconds": 16.409147700000176,
+  "sha256": "33d1ea9a73d99155be7716a5f8833e200d33eef2572ca34b9cc3a923f5df933a",
+  "size_bytes": 1690819,
+  "validation": {
+    "accuracy": 0.8663457978526472,
+    "macro_f1": 0.5949006411541544,
+    "per_class": {
+      "negative": {
+        "precision": 0.7517482517482518,
+        "recall": 0.5764075067024129,
+        "f1-score": 0.6525037936267072,
+        "support": 373.0
+      },
+      "neutral": {
+        "precision": 0.45098039215686275,
+        "recall": 0.12921348314606743,
+        "f1-score": 0.20087336244541484,
+        "support": 178.0
+      },
+      "positive": {
+        "precision": 0.88917089678511,
+        "recall": 0.9776744186046512,
+        "f1-score": 0.9313247673903412,
+        "support": 2150.0
+      },
+      "accuracy": 0.8663457978526472,
+      "macro avg": {
+        "precision": 0.6972998468967416,
+        "recall": 0.5610984694843771,
+        "f1-score": 0.5949006411541544,
+        "support": 2701.0
+      },
+      "weighted avg": {
+        "precision": 0.8413158222117756,
+        "recall": 0.8663457978526472,
+        "f1-score": 0.8446825706876265,
+        "support": 2701.0
+      }
+    },
+    "class_order": [
+      "negative",
+      "neutral",
+      "positive"
+    ],
+    "confusion_matrix": [
+      [
+        215,
+        13,
+        145
+      ],
+      [
+        38,
+        23,
+        117
+      ],
+      [
+        33,
+        15,
+        2102
+      ]
+    ],
+    "n": 2701,
+    "short": {
+      "n": 320,
+      "accuracy": 0.9375
+    },
+    "long": {
+      "n": 2381,
+      "accuracy": 0.8567828643427131
+    }
+  }
+}

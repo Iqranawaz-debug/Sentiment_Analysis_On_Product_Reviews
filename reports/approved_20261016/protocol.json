@@ -1,0 +1,67 @@
+{
+  "seed": 20261016,
+  "production_excluded_rows": 30000,
+  "source_audit": {
+    "sources": [
+      {
+        "filename": "Amazon_Food_Reviews.csv",
+        "rows": 568454,
+        "sha256": "a88348c20ed3f85d647e8fbaac0a730ab2f09f95e5d1f4bcf1f9e3650ef624d7"
+      },
+      {
+        "filename": "Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products_May19.csv",
+        "rows": 28332,
+        "sha256": "9778f5b1a7e5d50de2ec6191296d73599c9287468a788b197d97f46d9cdaf824"
+      }
+    ],
+    "input_rows": 596786,
+    "missing_rows_removed": 0,
+    "invalid_text_rows_removed": 32,
+    "conflicting_rows_removed": 567,
+    "duplicate_rows_removed": 185645,
+    "clean_rows": 410542,
+    "class_distribution": {
+      "negative": 58132,
+      "neutral": 30487,
+      "positive": 321923
+    },
+    "text_length_characters": {
+      "count": 410542.0,
+      "mean": 420.82692148428174,
+      "std": 427.2248438878778,
+      "min": 2.0,
+      "25%": 173.0,
+      "50%": 293.0,
+      "75%": 513.0,
+      "max": 16952.0
+    }
+  },
+  "near_duplicate_method": "nonnegative hashed unigram/bigram cosine >=0.92; connected components; no exhaustive semantic paraphrase guarantee",
+  "near_production_removed": 9,
+  "extra_short_sample": 2000,
+  "test_distribution": "short-review enriched, rating-derived labels; not deployment prevalence",
+  "split_counts": {
+    "fit": 10073,
+    "calibration": 2519,
+    "validation": 2701,
+    "test": 2698
+  },
+  "split_sha256": {
+    "fit": "736ae2da6bae52eb86a712d6c0f85054c7f8dc5481a6680055e5e3893e6ca261",
+    "calibration": "23a5b9b0d4e71dc8f577ad8fdf69855c86d9d26ede8f3da3c6f849110f0fd4e1",
+    "validation": "9a4b608b23bf8280d56b390abb21edf01a9b762cdb953b882d0dabeb60f6d909",
+    "test": "d5b0634571d6000ce4745d4a918e852d94cdf55b6573c8f52cba7d219b92d4b6"
+  },
+  "selection": "maximum validation macro-F1, ties first; never regression or test",
+  "threshold_grid": [
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    0.95
+  ],
+  "threshold_rule": "lowest validation threshold attaining >=90% accuracy on accepted rows; otherwise no threshold",
+  "transformer": "cardiffnlp/twitter-roberta-base-sentiment-latest, frozen, no task fine-tuning",
+  "hybrid_threshold": 0.8
+}

@@ -11,3 +11,6 @@ reports/reproduction
 reports/transformer-experiment
 models/reproduction
 models/transformer-experiment
+.cache
+.experiment-deps
+models/candidates

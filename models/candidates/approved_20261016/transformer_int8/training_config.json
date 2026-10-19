@@ -1,0 +1,14 @@
+{
+  "source_model": "cardiffnlp/twitter-roberta-base-sentiment-latest",
+  "revision": "3216a57f2a0d9c45a2e6c20157c20c49fb4bf9c7",
+  "fine_tuning": false,
+  "quantization": "torch dynamic qint8 Linear layers; float32 embeddings",
+  "sha256": "dec75d628a2e0d47b3b2dd65d9d695531d375cc297d6747e9406b1ff16e35e95",
+  "tokenizer_and_config": "models\\candidates\\approved_20261016\\transformer",
+  "source_manifest_sha256": "ba8f1ec543794e4927055ad4cde01b24207676289fbacf836f66f9c7d0da4d21",
+  "torch": "2.14.1+cpu",
+  "cpu_threads": 2,
+  "batch_size": 8,
+  "max_length": 256,
+  "batching": "label-blind text-length sorting, restored original order"
+}

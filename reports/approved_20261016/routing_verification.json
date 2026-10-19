@@ -1,0 +1,5 @@
+{
+  "both_hybrids_follow_fixed_080_rule": true,
+  "test_and_regression_rows_aligned": true,
+  "max_transformer_probability_sum_error": 1.1920928955078125e-07
+}

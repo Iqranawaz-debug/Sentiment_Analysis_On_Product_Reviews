@@ -1,0 +1,76 @@
+paths:
+  data:
+  - data/raw/Amazon_Food_Reviews.csv
+  - data/raw/Datafiniti_Amazon_Consumer_Reviews_of_Amazon_Products_May19.csv
+  models: models/neutral-reproduction
+  reports: reports/neutral-reproduction
+seed: 42
+split:
+  train: 0.7
+  val: 0.15
+  test: 0.15
+calibration_fraction: 0.2
+cv_folds: 5
+n_jobs: 1
+low_confidence_threshold: 0.6
+features:
+  min_df: 2
+  max_features: 50000
+  char_max_features: 50000
+model_grids:
+  logistic:
+  - 0.5
+  - 1.0
+  - 2.0
+  linear_svc:
+  - 0.5
+  - 1.0
+  - 2.0
+transformer:
+  model: distilbert-base-uncased
+  max_samples: 3000
+  epochs: 2
+  batch_size: 8
+  max_length: 128
+evaluation:
+  resamples: 1000
+  min_class_support: 30
+experiments:
+  reference_models: models/reference
+  reference_reports: reports/reference
+  cv: true
+  probability_weights:
+    negative:
+    - 0.75
+    - 1.0
+    - 1.25
+    - 1.5
+    neutral:
+    - 1.0
+    - 1.5
+    - 2.0
+    - 2.5
+    - 3.0
+  ordinal:
+    alpha:
+    - 0.5
+    - 1.0
+    - 5.0
+    lower_threshold:
+    - 2.1
+    - 2.3
+    - 2.5
+    - 2.7
+    upper_threshold:
+    - 3.1
+    - 3.3
+    - 3.5
+    - 3.7
+  structural:
+    C:
+    - 0.5
+    - 1.0
+    - 2.0
+  cv_parameters:
+    ordinal_ridge: 1.0
+    structural_features: 1.0

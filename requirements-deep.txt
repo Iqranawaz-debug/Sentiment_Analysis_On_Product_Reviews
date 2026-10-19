@@ -1,0 +1,6 @@
+# Optional; install with requirements.txt to preserve production dependency pins.
+torch==2.14.1
+transformers==5.20.1
+tokenizers==0.23.3
+huggingface-hub==2.2.0
+safetensors==0.8.0

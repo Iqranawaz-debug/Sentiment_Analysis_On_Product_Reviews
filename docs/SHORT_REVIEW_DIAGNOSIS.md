@@ -1,5 +1,16 @@
 # Short-review diagnosis
 
+## Verification follow-up — 2026-10-16
+
+The complete suite passed: **80 passed in 43.01 seconds**. The command was
+`python -u -m pytest -q -o faulthandler_timeout=45 --basetemp=.sentix-verified-tests`.
+It ran outside the sandbox after a timed stack trace located the sandboxed hang
+in `socket._fallback_socketpair`, called while Streamlit AppTest initialized its
+asyncio event loop, before application execution. No application change was
+needed to complete the tests. Pytest emitted one cache-write warning (WinError
+183); no tests failed. The saved model hash still matches the original artifact.
+No production model was retrained or overwritten.
+
 Reproduce with `python -m scripts.diagnose_short_reviews`. This only loads the existing
 model and writes `reports/short_review_sanity.json`; it never trains or changes artifacts.
 The JSON contains all 24 authored cases, expected labels, all probabilities, raw

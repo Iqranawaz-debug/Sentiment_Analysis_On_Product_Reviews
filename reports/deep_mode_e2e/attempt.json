@@ -1,0 +1,6 @@
+{
+  "status": "incomplete",
+  "reason": "Streamlit AppTest timed out after 1200 seconds during the 2698-row CSV workflow.",
+  "metrics": null,
+  "follow_up": "Rerun with batch-progress logging and diagnostic stack traces in reports/deep_mode_e2e_retry."
+}

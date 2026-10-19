@@ -1,0 +1,5 @@
+{
+  "status": "incomplete",
+  "reason": "All test inference completed, but the harness incorrectly asserted every review would have status ok. The existing production UI abstains on five out-of-vocabulary reviews.",
+  "follow_up": "Preserve app abstention behavior, count unavailable rows as incorrect across all 2698 cases, compute macro-F1 over the three sentiment classes, and record an explicit unavailable confusion-matrix column. Acceptance thresholds remain unchanged."
+}

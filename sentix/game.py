@@ -97,6 +97,8 @@ def render(predictor) -> None:
             st.rerun()
     if st.session_state.game_reveal:
         guess, result, points = st.session_state.game_reveal
+        if result.get("warning"):
+            st.warning(result["warning"])
         st.write(
             f"You guessed **{guess}**. Senti predicted **{result['label']}**. Real label: **{review['true_label'] or 'unknown'}**."
         )

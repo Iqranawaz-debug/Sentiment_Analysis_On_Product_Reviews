@@ -1,0 +1,24 @@
+{
+  "reviewer": "assistant; single-pass text-only judgment, not independent human adjudication",
+  "scope": "36 randomly sampled training-only short reviews, 12 per rating-derived class; no model predictions consulted",
+  "corrections": {
+    "but do last longer than duracell": "positive",
+    "cheap and convenient": "positive",
+    "duracell batteries last longer than these": "negative",
+    "batteries die extremely quick": "negative",
+    "this tablet is grrrrrrreeeeeeeeaaaaaattttttt for the children": "positive"
+  },
+  "correction_rationale": "The first, second and fifth texts directly praise performance/convenience despite a three-star rating; the third and fourth criticize battery longevity.",
+  "exclude_ambiguous": [
+    "did order or get",
+    "length 1 24 mins",
+    "not the best",
+    "they are batteries power my flashlight",
+    "thanks for your review",
+    "worked",
+    "value"
+  ],
+  "exclusion_rationale": "Incomplete or non-review content, or insufficient evidence to distinguish neutral description from mild approval/disapproval. No label is forced.",
+  "unchanged_count": 24,
+  "limitations": "The remaining corpus and every evaluation label remain rating proxies. This small audit cannot estimate label-noise prevalence reliably, and the assistant judgments require human review before a deployment decision."
+}

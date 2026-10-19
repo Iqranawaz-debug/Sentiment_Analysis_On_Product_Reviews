@@ -1,0 +1,8 @@
+{
+  "full_precision_status": "incomplete; stopped during CPU inference before the 200-review progress marker; no aggregate scores claimed",
+  "reason": "Several minutes of CPU execution with less than 200 of 2698 reviews completed made the original implementation impractical in this session.",
+  "replacement": "Separate dynamic-int8 Linear-layer quantization of the same pinned pretrained weights, plus label-blind length-sorted batches, restoring original row order",
+  "selection_basis": "runtime only; no transformer test or regression metrics were computed or inspected before this change",
+  "unchanged": ["pretrained source weights", "production files", "held-out split", "max_length 256", "batch size 8", "CPU threads 2", "hybrid threshold 0.80"],
+  "limitation": "Quantized results must not be represented as measured full-precision results. Quantization can alter probabilities and predictions."
+}

@@ -31,6 +31,8 @@ def analyze(predictor, texts: list[str], progress=None) -> pd.DataFrame:
                     "sentiment": result["label"],
                     "confidence": result["confidence"],
                     "status": result["status"],
+                    "route": result.get("route", "fast"),
+                    "warning": result.get("warning", ""),
                     **{f"probability_{k}": v for k, v in result["probabilities"].items()},
                 }
             )
@@ -88,6 +90,15 @@ def render(predictor) -> None:
         if st.session_state.get("bulk_signature") != signature:
             return
         result = st.session_state.bulk_result
+        fallbacks = (
+            result["warning"].ne("")
+            if "warning" in result
+            else pd.Series(False, index=result.index)
+        )
+        if fallbacks.any():
+            st.warning(
+                f"{int(fallbacks.sum())} reviews used Fast Mode because Deep Mode was unavailable. {result.loc[fallbacks, 'warning'].iloc[0]}"
+            )
         counts = (
             result[result.status == "ok"].sentiment.value_counts().reindex(LABELS, fill_value=0)
         )

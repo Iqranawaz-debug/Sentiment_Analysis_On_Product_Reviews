@@ -1,0 +1,45 @@
+{
+  "model": "cardiffnlp/twitter-roberta-base-sentiment-latest",
+  "revision": "3216a57f2a0d9c45a2e6c20157c20c49fb4bf9c7",
+  "license": "cc-by-4.0",
+  "license_source": "https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest/blob/3216a57f2a0d9c45a2e6c20157c20c49fb4bf9c7/README.md",
+  "fine_tuning": false,
+  "download_seconds": 532.2251527000008,
+  "files": [
+    {
+      "name": "README.md",
+      "bytes": 4328,
+      "sha256": "05ad85143ed60f0abe631ab935485db046c24710d9bec50829b017cfc1e12bf7"
+    },
+    {
+      "name": "config.json",
+      "bytes": 929,
+      "sha256": "d2fba19997da698157196ba16f5fcb30a97a7551cef6845a0f3d743ee19c6129"
+    },
+    {
+      "name": "merges.txt",
+      "bytes": 456318,
+      "sha256": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5"
+    },
+    {
+      "name": "pytorch_model.bin",
+      "bytes": 501045531,
+      "sha256": "4d24a3e32a88ed1c4e5b789fc6644e2e767500554e954b27dccf52a8e762cbae"
+    },
+    {
+      "name": "special_tokens_map.json",
+      "bytes": 239,
+      "sha256": "378eb3bf733eb16e65792d7e3fda5b8a4631387ca04d2015199c4d4f22ae554d"
+    },
+    {
+      "name": "vocab.json",
+      "bytes": 898822,
+      "sha256": "06b4d46c8e752d410213d9548eb27a54db70fda0319b6271fb8d59dead5e1cab"
+    }
+  ],
+  "download_bytes": 502406167,
+  "max_length": 256,
+  "batch_size": 8,
+  "cpu_threads": 2,
+  "preprocessing": "model-card URL and username placeholders"
+}

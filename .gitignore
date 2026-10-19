@@ -18,3 +18,15 @@ reports/reproduction/
 reports/transformer-experiment/
 reports/**/predictions.csv
 reports/**/error_analysis.csv
+
+reports/**/neutral_error_analysis.csv
+reports/neutral_error_analysis.csv
+models/reference/
+reports/reference/
+models/neutral-reproduction/
+reports/neutral-reproduction/
+.cache/
+.experiment-deps/
+models/candidates/**/*.pt
+models/candidates/**/*.bin
+models/candidates/**/*.joblib

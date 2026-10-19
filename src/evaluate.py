@@ -55,11 +55,19 @@ def write_reports(directory, metrics, test, predicted, probabilities, classes):
     pd.DataFrame(comparison).to_csv(directory / "comparison.csv", index=False)
     pd.DataFrame(metrics["ablations"]).to_csv(directory / "ablation.csv", index=False)
     rows = test[["review_text", "label", "source"]].rename(columns={"label": "true_label"}).copy()
+    if "star_rating" in test:
+        rows["star_rating"] = test.star_rating.to_numpy()
     rows["predicted_label"] = predicted
-    rows["confidence"] = probabilities.max(axis=1)
+    class_indices = np.array([list(classes).index(label) for label in predicted])
+    rows["confidence"] = probabilities[np.arange(len(rows)), class_indices]
     for index, label in enumerate(classes):
         rows[f"probability_{label}"] = probabilities[:, index]
     rows.to_csv(directory / "predictions.csv", index=False)
+    from src.error_analysis import neutral_error_sample
+
+    neutral_error_sample(rows, metrics["seed"]).to_csv(
+        directory / "neutral_error_analysis.csv", index=False
+    )
     rows.loc[rows.true_label != rows.predicted_label].sort_values(
         "confidence", ascending=False
     ).head(50).to_csv(directory / "error_analysis.csv", index=False)
