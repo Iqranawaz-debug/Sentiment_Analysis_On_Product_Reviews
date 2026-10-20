@@ -1,8 +1,82 @@
-# Sentix AI — meet Senti
+<div align="center">
 
-Sentix AI turns product reviews into understandable feedback with a real, calibrated sentiment model. Senti, an original animated seed companion, brings each prediction to life while keeping uncertainty and evidence visible.
+# 🌱 Sentix AI
+### Meet Senti — turning customer reviews into insights, one mood at a time.
 
-## Senti experience
+**A sentiment analysis experience that makes machine learning interactive, visual, and explainable.**
+
+![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)
+![NLP](https://img.shields.io/badge/NLP-TF--IDF-6D28D9?style=for-the-badge)
+![Explainability](https://img.shields.io/badge/Explainable-AI-0F766E?style=for-the-badge)
+
+*Read a review. Understand its mood. Explore the evidence.*
+
+[Features](#-at-a-glance) · [Quick start](#-quick-start) · [Model results](#generated-results) · [Deep Mode](#optional-deep-mode-approved-int8-hybrid) · [Limitations](#limitations-and-future-work)
+
+</div>
+
+---
+
+## ✨ The idea
+
+Customer reviews are full of opinions, but thousands of comments can be hard to interpret one by one. **Sentix AI** helps explore product sentiment through a real trained NLP model, an interactive Streamlit interface, and **Senti**, an original animated seed character whose mood reflects the model's output.
+
+It goes beyond a simple *positive / neutral / negative* label: you can inspect calibrated class probabilities, explore word-level evidence, analyze CSV files in batches, and check the model's evaluation results. When evidence is insufficient, the system can say **unavailable** instead of inventing a prediction.
+
+> **Built for learning and human review, not as a claim of production-ready sentiment intelligence.** The original project's model, evaluation protocol, and limitations remain documented below.
+
+## ⚡ At a glance
+
+| Experience | What you can do |
+|:--|:--|
+| 🗨️ **Live Review** | Paste a review and see its sentiment, confidence, three-class probabilities, and Senti's animated reaction |
+| 📂 **Bulk Mode** | Analyze a selected CSV text column (up to 5,000 rows by default) and export formula-safe results |
+| 🔍 **Why?** | Inspect contributing words using the linear TF-IDF model's score evidence, with optional LIME/fallback |
+| 🎮 **Guess the Mood** | Compare your own guesses with the model on local review examples |
+| 📊 **Model Lab** | Examine saved accuracy, macro-F1, per-class scores, and a confusion matrix |
+| 🧠 **Optional Deep Mode** | Route lower-confidence Fast predictions through a frozen int8 transformer, once its separately hosted artifact is configured |
+
+**Recommended showcase:** capture Live Review with Senti reacting, a Bulk Mode results view, the *Why?* explanation panel, and Model Lab. Keep screenshots as demonstrations; use the generated reports for measured model performance.
+
+## 🚀 Quick start
+
+Use **Python 3.14** and the pinned dependencies supplied with this repository. From the project root in PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt
+python -m pytest -q -p no:cacheprovider
+python -m streamlit run app.py --browser.gatherUsageStats false
+```
+
+Open the localhost link printed in the terminal. **Fast Mode** works with the included trusted model artifacts and does not require raw training CSVs or an internet connection after dependencies are installed. Additional installation, reproducibility, and optional Deep Mode instructions appear later.
+
+## 🧩 How it works
+
+```mermaid
+flowchart LR
+    A[Product review] --> B[Streamlit UI]
+    B --> C[Validated prediction adapter]
+    C --> D[Saved TF-IDF + calibrated logistic pipeline]
+    D --> E[Sentiment + class probabilities]
+    E --> F[Senti mood + evidence + charts]
+    G[Saved evaluation reports] --> H[Model Lab]
+```
+
+**Fast Mode** serves a saved, three-class calibrated logistic-regression pipeline using word TF-IDF unigrams and bigrams. The interface **loads** the trained pipeline; it does not retrain it during user interaction. Optional Deep Mode is a distinct, conditional inference path with separate limitations.
+
+## 📈 Measured results — context matters
+
+The included evaluation report lists **86.36% test accuracy** and **0.6140 macro-F1** for the Fast model on **4,500 reviews**. Neutral-class performance is substantially weaker than positive-class performance; accuracy alone should not be interpreted as uniform performance across sentiments.
+
+These are values reported in the existing generated metrics block below—not fresh measurements. The [model card](docs/MODEL_CARD.md) and full [metrics](reports/metrics.json) provide the evaluation context, including class imbalance and domain slices.
+
+---
+
+## 🎭 Explore the Senti experience
 
 - **Live Review:** three sample buttons, persistent text/results, animated moods, predicted-class probability and three-class breakdown.
 - **Bulk Mode:** choose any CSV text column, analyze up to 5,000 rows, inspect counts, top reviews and a proportional mood crowd, then download a formula-safe CSV.
