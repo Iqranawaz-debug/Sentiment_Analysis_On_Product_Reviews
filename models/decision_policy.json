@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "artifact_sha256": "85edf60258b04b218bde4d4f7c954176454ee7f42ddeb6816985e53fd72617a0",
+  "rule": "argmax(p_c / prior_c ** alpha)",
+  "alpha": 0.3,
+  "priors": {
+    "negative": 0.141571,
+    "neutral": 0.074286,
+    "positive": 0.784143
+  },
+  "weights": {
+    "negative": 1.797659,
+    "neutral": 2.181365,
+    "positive": 1.075676
+  },
+  "adopted": true,
+  "selected_on": "reports/approved_20261016/validation.csv",
+  "created_utc": "2026-10-28T15:52:28+00:00"
+}

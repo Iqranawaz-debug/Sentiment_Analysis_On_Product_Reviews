@@ -8,7 +8,9 @@ FILTER_KEYS = (
 )  # fmt: skip
 # Streamlit drops a widget's state on runs where the widget is not drawn. Re-assigning
 # these before any widget renders keeps them when the user switches pages.
-PERSISTENT = ("page", "analysis_mode", "review", "hist_query", "ov_freq", "ov_metric", *FILTER_KEYS)
+PERSISTENT = (
+    "analysis_mode", "review", "hist_query", "ov_freq", "ov_metric", "show_senti", *FILTER_KEYS,
+)  # fmt: skip
 
 
 def keep_widget_state() -> None:
@@ -22,8 +24,14 @@ def initial(key: str, **defaults) -> dict:
     return {} if key in st.session_state else defaults
 
 
+def slug(page: str) -> str:
+    return page.lower().replace(" & ", "-").replace(" ", "-")
+
+
 def go(page: str) -> None:
+    """Switch page and mirror it in the URL so the page can be bookmarked or shared."""
     st.session_state.page = page
+    st.query_params["page"] = slug(page)
 
 
 def reset_filters() -> None:

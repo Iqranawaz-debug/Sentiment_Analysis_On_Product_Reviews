@@ -19,5 +19,5 @@
       "vocab.json": "06b4d46c8e752d410213d9548eb27a54db70fda0319b6271fb8d59dead5e1cab"
     }
   },
-  "runtime": {"torch": "2.14.1", "transformers": "5.20.1", "threads": 2, "batch_size": 8, "max_length": 256}
+  "runtime": {"torch": "2.14.1", "transformers": "5.20.1", "threads": 2, "batch_size": 1, "max_length": 256}
 }

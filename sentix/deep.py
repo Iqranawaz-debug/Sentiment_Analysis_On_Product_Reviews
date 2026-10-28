@@ -29,6 +29,12 @@ def load_config():
         raise DeepModeError("Deep Mode requires the approved 0.80 routing threshold.")
     if not re.fullmatch("[a-fA-F0-9]{64}", config["artifact"]["sha256"]):
         raise DeepModeError("Deep Mode needs a valid expected SHA-256.")
+    # Dynamic int8 quantization takes its activation scale from the whole padded
+    # batch, so batched scores depend on the neighbouring reviews (measured: up to
+    # 0.25 probability and label flips). One review per forward pass keeps every
+    # result independent and identical between Review Analyzer and Batch Analysis.
+    if config["runtime"]["batch_size"] != 1:
+        raise DeepModeError("Deep Mode must score one review at a time (batch_size 1).")
     return config
 
 
@@ -121,7 +127,9 @@ class Int8Runtime:
             or artifact["revision"] not in artifact["url"]
         ):
             raise DeepModeError(
-                "Deep Mode hosting is pending: configure its HTTPS URL and pinned commit SHA. Fast Mode was used."
+                "Deep Mode hosting is pending: configure its HTTPS URL and pinned commit SHA, "
+                f"or place the verified weights in {self.cache_dir.name} (SENTIX_DEEP_CACHE "
+                "selects the folder). Fast Mode was used."
             )
         checked_download(artifact["url"], weights, artifact["sha256"], progress)
         upstream = self.config["upstream"]
@@ -233,7 +241,9 @@ class DeepPredictor:
         deferred = [
             i
             for i, r in enumerate(results)
-            if r["status"] == "ok" and r["confidence"] < self.threshold
+            # The approved gate uses the largest calibrated probability, which the
+            # Fast decision rule never changes.
+            if r["status"] == "ok" and r.get("top_probability", r["confidence"]) < self.threshold
         ]
         for r in results:
             r["route"] = "fast" if r["status"] == "ok" else "unavailable"
@@ -260,5 +270,9 @@ class DeepPredictor:
                     "confidence": float(p.max()),
                     "probabilities": dict(zip(LABELS, map(float, p))),
                     "route": "transformer",
+                    "top_label": label,
+                    "top_probability": float(p.max()),
+                    "uncertainty": [],
+                    "decision_rule": "transformer most probable class",
                 }
         return results

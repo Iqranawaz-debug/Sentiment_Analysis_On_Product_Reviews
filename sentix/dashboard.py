@@ -5,6 +5,9 @@ session's analyzer history. It lives in Streamlit session memory only.
 """
 
 import html
+import json
+import os
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -25,10 +28,11 @@ SORTS = {
     "Date": "date",
 }
 SAMPLE_NOTE = (
-    "Real Amazon reviews and star ratings from a tracked evaluation split "
-    "(reports/approved_20261016/test.csv), re-scored live by the Fast Mode model. "
-    "They may overlap the production model's training data, so this sample is never "
-    "used to measure accuracy. It has no review dates."
+    "Real Amazon reviews and star ratings from a tracked held-out split "
+    "(reports/approved_20261016/test.csv) that excludes every review in the production "
+    "model's 30,000-review sample and near-duplicates of them. Scored live by the Fast "
+    "Mode model. Ratings here are not used as accuracy: see Model & Evaluation for the "
+    "measured results. It has no review dates."
 )
 
 
@@ -67,10 +71,18 @@ def use_history() -> None:
         go("Overview")
 
 
-def record_history(text: str, result: dict, mode: str, elapsed_ms: float) -> None:
+def record_history(text: str, result: dict, mode: str, elapsed_ms: float, model: str = "") -> None:
     entries = st.session_state.setdefault("history", [])
-    entries.append(ds.history_entry(text, result, mode, elapsed_ms))
+    entries.append(ds.history_entry(text, result, mode, elapsed_ms, model))
     del entries[:-HISTORY_LIMIT]
+
+
+def delete_history(number: int) -> None:
+    """`number` is the 1-based position shown in the table's Row column."""
+    entries = st.session_state.get("history", [])
+    if 1 <= number <= len(entries):
+        del entries[number - 1]
+    st.session_state.pop("hist_detail", None)
 
 
 def cards(items: list[tuple[str, str, str, str]]) -> None:
@@ -256,8 +268,11 @@ def overview(predictor) -> None:
         insight_list(ds.insights(frame, low))
 
     with st.container(border=True):
-        st.header("Sentiment over time")
-        trend_section(frame)
+        if "date" in frame:
+            st.header("Sentiment over time")
+            trend_section(frame)
+        else:
+            segment_section(frame)
 
     with st.container(border=True):
         st.header("Ratings and predicted sentiment")
@@ -281,6 +296,87 @@ def overview(predictor) -> None:
         rows = frame.sort_values("date", ascending=False) if dated else frame
         table(rows.head(10))
         st.button("Open Review Explorer", on_click=go, args=("Review Explorer",))
+
+    status_section(frame, meta, predictor)
+
+
+def segment_section(frame: pd.DataFrame) -> None:
+    """Useful breakdown when no dates exist: by category if mapped, else by length."""
+    by_product = "product" in frame and frame["product"].notna().any()
+    title = "Product or category" if by_product else "Review length"
+    st.header(f"Sentiment by {title.lower()}")
+    st.info(
+        "Trends need real review dates, and this dataset has none mapped, so dates are never "
+        f"invented. Showing sentiment by {title.lower()} instead."
+    )
+    table_ = ds.segment_table(frame, "product" if by_product else "length")
+    if table_.empty:
+        st.caption("No analyzed reviews to break down.")
+        return
+    st.altair_chart(charts.segments(table_, title), width="stretch")
+    biggest = table_.drop_duplicates("segment")
+    st.caption(
+        "Predicted sentiment mix within each "
+        + ("category (largest 8 shown)" if by_product else "word-count band")
+        + ". Segments: "
+        + "; ".join(f"{s} n={n:,}" for s, n in zip(biggest.segment, biggest.total))
+        + ". Small segments can swing widely."
+    )
+
+
+def evaluation_status() -> list[str]:
+    """Which saved evaluations exist; this is not a live health check."""
+    reports = Path(
+        os.environ.get("SENTIMENT_REPORTS_DIR", Path(__file__).resolve().parents[1] / "reports")
+    )
+    found = []
+    try:
+        policy = json.loads((reports / "decision_policy.json").read_text(encoding="utf-8"))
+        found.append(f"Decision rule evaluated {policy['created_utc'][:10]} on held-out data")
+    except OSError, ValueError, KeyError:
+        found.append("No decision-rule evaluation saved")
+    deep = reports / "deep_mode_e2e_20261028_batch1/results.json"
+    found.append(
+        "Deep Mode measured end to end 2026-10-28" if deep.exists() else "Deep Mode not measured"
+    )
+    return found
+
+
+def status_section(frame: pd.DataFrame, meta: dict, predictor) -> None:
+    stats = ds.kpis(frame, unsure_threshold())
+    normalized = frame.review_text.astype(str).str.lower().str.strip()
+    duplicates = int(normalized[normalized != ""].duplicated().sum())
+    warnings = []
+    if stats["unavailable"]:
+        warnings.append(f"{stats['unavailable']:,} rows could not be analyzed")
+    if duplicates:
+        warnings.append(f"{duplicates:,} repeated review texts")
+    for column, name in (("rating", "ratings"), ("date", "dates")):
+        if column in frame and frame[column].isna().any():
+            warnings.append(f"{int(frame[column].isna().sum()):,} missing or unreadable {name}")
+    facts = {
+        "Active dataset": meta["name"],
+        "Records": f"{stats['total']:,} rows; {stats['analyzed']:,} analyzed",
+        "Scored with": meta["mode"],
+        "Fast model": f"TF-IDF logistic regression, artifact "
+        f"{predictor.metadata['artifact_sha256'][:12]}; labels by {predictor.decision_rule}",
+        "Saved evaluations": "; ".join(evaluation_status()),
+        "Data warnings": "; ".join(warnings) or "None found",
+    }
+    with st.container(border=True):
+        st.header("Data and model status")
+        st.html(
+            '<dl class="facts">'
+            + "".join(
+                f"<dt>{html.escape(k)}</dt><dd>{html.escape(str(v))}</dd>" for k, v in facts.items()
+            )
+            + "</dl>"
+        )
+        st.caption(
+            "Saved evaluations describe measured quality; they are not a live availability "
+            "check. Theme extraction is not implemented, so no praise or complaint themes are "
+            "shown; frequent words under Insights are descriptive only."
+        )
 
 
 def trend_section(frame: pd.DataFrame) -> None:
@@ -517,6 +613,9 @@ def detail(row: pd.Series, number: int) -> None:
             facts.append(f"Date: {row['date']:%Y-%m-%d %H:%M} UTC")
         if row.get("route") and row.get("route") != "fast":
             facts.append(f"Read by: {row['route']}")
+        for name, title in (("mode", "Mode"), ("model", "Model"), ("feedback", "Feedback")):
+            if name in row and isinstance(row[name], str) and row[name]:
+                facts.append(f"{title}: {row[name]}")
         if facts:
             st.text(" · ".join(facts))
         st.caption("Full review text. Use the copy button in the box's corner.")
@@ -544,6 +643,9 @@ def history(predictor) -> None:
     view = display_frame(shown)
     view.insert(4, "Mode", shown["mode"].to_numpy())
     view.insert(5, "Time (ms)", shown.elapsed_ms.to_numpy())
+    for column, title in (("model", "Model"), ("feedback", "Feedback")):
+        if column in shown:
+            view[title] = shown[column].fillna("").to_numpy()
     st.dataframe(
         view,
         hide_index=True,
@@ -553,6 +655,33 @@ def history(predictor) -> None:
             "Review": st.column_config.TextColumn(width="large"),
         },
     )
+    st.caption(
+        "Each analysis keeps the model and mode that produced it; later model changes do not "
+        "rewrite old results."
+    )
+    options = shown.row.tolist()
+    if st.session_state.get("hist_detail") not in options:
+        st.session_state.pop("hist_detail", None)
+    lookup = frame.set_index("row")
+    chosen = st.selectbox(
+        "Open an analysis",
+        options,
+        index=None,
+        key="hist_detail",
+        placeholder="Choose an analysis to see its details",
+        format_func=lambda row: (
+            f"Row {row} · {ds.badge(lookup.at[row, 'sentiment'])} · "
+            f"{lookup.at[row, 'date']:%H:%M:%S} · {str(lookup.at[row, 'review_text'])[:60]}"
+        ),
+    )
+    if chosen is not None:
+        detail(lookup.loc[chosen], chosen)
+        st.button(
+            "Delete this analysis",
+            icon=":material/delete:",
+            on_click=delete_history,
+            args=(chosen,),
+        )
     a, b, c = st.columns(3)
     a.button("Use as dataset", on_click=use_history, type="primary", width="stretch")
     b.download_button(

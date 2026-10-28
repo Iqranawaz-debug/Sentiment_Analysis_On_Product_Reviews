@@ -83,7 +83,8 @@ def build_dataset(source: pd.DataFrame, results: pd.DataFrame, mapping: dict) ->
     return frame
 
 
-def history_entry(text: str, result: dict, mode: str, elapsed_ms: float) -> dict:
+def history_entry(text: str, result: dict, mode: str, elapsed_ms: float, model: str = "") -> dict:
+    """A frozen record: later model changes never rewrite an old prediction."""
     return {
         "review_text": text,
         "sentiment": result["label"],
@@ -94,6 +95,9 @@ def history_entry(text: str, result: dict, mode: str, elapsed_ms: float) -> dict
         "message": result.get("message", ""),
         **{f"probability_{k}": v for k, v in result["probabilities"].items()},
         "mode": mode,
+        "model": model,
+        "uncertainty": ", ".join(result.get("uncertainty", [])),
+        "feedback": "",
         "elapsed_ms": round(elapsed_ms, 1),
         "date": datetime.now(timezone.utc),
     }
@@ -230,6 +234,35 @@ def rating_table(frame: pd.DataFrame) -> pd.DataFrame:
     if rows.empty or rows.rating.nunique() > 11:
         return pd.DataFrame()
     return pd.crosstab(rows.rating, rows.sentiment).reindex(columns=list(LABELS), fill_value=0)
+
+
+LENGTH_BINS = [0, 8, 30, 80, 200, np.inf]
+LENGTH_NAMES = ["1–8 words", "9–30 words", "31–80 words", "81–200 words", "200+ words"]
+
+
+def segment_table(frame: pd.DataFrame, by: str, top: int = 8) -> pd.DataFrame:
+    """Predicted-sentiment counts per product/category (top N) or per review-length band."""
+    ok = frame[frame.status == "ok"]
+    if by == "product":
+        ok = ok[ok["product"].notna()]
+        keep = ok["product"].value_counts().head(top).index
+        segments = ok["product"].where(ok["product"].isin(keep))
+        ok, segments = ok[segments.notna()], segments.dropna()
+        order = list(keep)
+    else:
+        words = ok.review_text.astype(str).str.split().str.len()
+        segments = pd.cut(words, LENGTH_BINS, labels=LENGTH_NAMES).astype(str)
+        order = [name for name in LENGTH_NAMES if name in set(segments)]
+    if ok.empty:
+        return pd.DataFrame(columns=["segment", "sentiment", "count", "share", "total"])
+    table = pd.crosstab(segments, ok.sentiment).reindex(columns=list(LABELS), fill_value=0)
+    table = table.reindex(order)
+    long = table.reset_index(names="segment").melt(
+        id_vars="segment", var_name="sentiment", value_name="count"
+    )
+    long["total"] = long.segment.map(table.sum(axis=1)).astype(int)
+    long["share"] = long["count"] / long.total.where(long.total > 0, 1)
+    return long
 
 
 def disagreements(frame: pd.DataFrame) -> pd.DataFrame:

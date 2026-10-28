@@ -103,13 +103,24 @@ def highlight(text: str, contributions: list[tuple[str, float]]) -> str:
 
 
 def render(predictor) -> None:
-    st.subheader("Why did Senti feel this way?")
-    st.caption("Explanations show which words influenced the model, not absolute truth.")
+    st.subheader("Why did the Fast model read it this way?")
+    st.caption(
+        "For the Fast linear model this is an exact breakdown of its pre-calibration "
+        "positive-minus-negative score into words. It shows which words moved the score, "
+        "not whether the label is right, and it does not explain Deep Mode's transformer."
+    )
     text = st.session_state.get("review", "")
     if not text.strip():
-        st.info("Give Senti a review in Live Review first.")
+        st.info("Enter a review in Review Analyzer first.")
         return
-    st.write(text)
+    # Review text is untrusted: show it as plain text, never as Markdown or HTML.
+    st.text(text)
+    fast = predictor.predict(text)
+    if fast["status"] == "ok":
+        st.caption(
+            f"Fast Mode label: {fast['label']} ({fast['confidence']:.1%}), chosen by "
+            f"{fast.get('decision_rule', 'the most probable class')}."
+        )
     if st.button("Explain this review"):
         try:
             st.session_state.explanation = (text, explain(text, predictor))
