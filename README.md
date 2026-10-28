@@ -94,7 +94,9 @@ The sidebar groups eight pages as links (Analyze: Overview, Review Analyzer, Rev
 
 **Active dataset.** The Overview and Explorer work on one dataset at a time: a scored CSV, this session's history, or the bundled sample. The sample is the 2,698 real Amazon reviews and star ratings in `reports/approved_20261016/test.csv`, scored live with the Fast Mode model. It comes from a later experiment's held-out split that excludes every review in the production model's 30,000-review sample and near-duplicates of them. It has no dates, so trends are shown only for uploads with a mapped date column. Nothing is persisted to disk.
 
-Senti is an original character, built entirely with inline SVG and CSS. It uses no external images, fonts, services or API keys. Animations support reduced motion and light/dark color schemes. The original demonstration remains in `sentix_mascot_app.py` as a visual reference; launch `app.py` for real ML predictions.
+Senti is an original character, built entirely with inline SVG and CSS. It uses no external images, fonts, services or API keys. Its expressions follow real app states only: welcome before analysis, thinking while the model runs, then the shown result's mood (sparkles, and a small heart at 90%+, only on clear positive results; a concerned but supportive face for negative ones; a puzzled face for tentative ones). Animations are short and switch off under reduced-motion settings.
+
+**Design system.** One set of tokens in `sentix/theme.py` (ivory canvas, mint surfaces, deep-teal actions, coral and amber as decorative accents only) drives every page; all text colour pairs were checked against WCAG AA contrast. Sentiment always shows as an arrow plus a word, never colour alone. Charts share one quiet style (`sentix/charts.py`). The original demonstration remains in `sentix_mascot_app.py` as a visual reference; launch `app.py` for real ML predictions.
 
 The UI uses Streamlit 1.64's `st.iframe` to display the generated HTML because `components.v1.html` now emits a deprecation warning. `render_senti()` still returns a standalone HTML string compatible with the original component interface.
 

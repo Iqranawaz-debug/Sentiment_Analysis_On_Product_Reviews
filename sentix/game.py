@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from sentix.dataset import display_text
 from sentix.mascot import render_senti
 
 FALLBACK = [
@@ -75,12 +76,17 @@ def render(predictor) -> None:
     if "game_score" not in st.session_state:
         st.session_state.game_score = [0, 0]
     you, senti = st.session_state.game_score
-    st.write(f"You {you} : {senti} Senti")
+    st.html(
+        f'<div class="scoreboard" role="group" aria-label="Score"><div class="score"><b>{int(you)}'
+        f'</b><span>You</span></div><div class="score"><b>{int(senti)}</b><span>Senti (the '
+        "model)</span></div></div>"
+    )
     st.caption(
         "One point each for matching the real rating-derived label. Both can score. Unlabeled examples are practice only."
     )
     review = st.session_state.game_review
-    st.text(review["review_text"])  # untrusted text: never render as Markdown
+    # Untrusted text: plain text only, never Markdown. Line-break tags shown as breaks.
+    st.text(display_text(review["review_text"]))
     st.caption(
         "Real held-out review"
         if review["true_label"]

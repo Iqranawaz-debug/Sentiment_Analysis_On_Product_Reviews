@@ -102,6 +102,16 @@ def test_app_pages_and_predictions(app):
     assert app.text_area(key="review").value == app.session_state.analyzed_text
 
 
+def test_result_reading_matches_the_tentative_rule(app):
+    analyze(app, PRAISE)
+    page = html_text(app)
+    assert "reads this review as <b>positive</b>" in page and "result-foot" in page
+    app.text_area(key="review").input("Absolutely hate it").run()
+    button(app, "Analyze review").click().run()
+    page = html_text(app)
+    assert "leans <b>positive</b>, but it is not sure" in page
+
+
 def test_editing_clears_the_old_result(app):
     analyze(app, PRAISE)
     app.text_area(key="review").input("Terrible, it broke on day one.").run()

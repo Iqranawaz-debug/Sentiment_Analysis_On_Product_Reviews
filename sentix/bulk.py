@@ -170,6 +170,7 @@ def render(predictor) -> None:
             )
             st.session_state.bulk_signature = signature
             progress.empty()
+            st.toast(f"Analysis complete: {len(frame):,} rows.", icon=":material/check_circle:")
         if st.session_state.get("bulk_signature") != signature:
             return
         result = st.session_state.bulk_result
