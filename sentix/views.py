@@ -14,13 +14,13 @@ import streamlit as st
 from sentix import charts, dashboard
 from sentix.dataset import badge
 from sentix.deep import DeepPredictor
-from sentix.mascot import presentation_mood, render_senti, unsure_threshold
+from sentix.mascot import presentation_mood, render_senti, svg_image, unsure_threshold
 from sentix.state import go, initial, keep_widget_state, slug
 from src.ui import load_reports
 
 PAGES = {
     "Overview": "Sentiment, certainty and insights across the active dataset.",
-    "Review Analyzer": "Analyze one review with the real model and see how sure it is.",
+    "Review Analyzer": "Paste a review and see how the model reads it, and how sure it is.",
     "Review Explorer": "Search, filter and open individual reviews in the active dataset.",
     "Batch Analysis": "Score a CSV of reviews, map optional columns and download results.",
     "History": "Reviews you analyzed in this browser session.",
@@ -45,6 +45,21 @@ ICONS = {
     "Guess the Mood": ":material/sports_esports:",
 }
 DEFAULT_PAGE = "Review Analyzer"
+# A simplified Senti sprout for the logo: two leaves on a seed, drawn in white.
+BRAND_MARK = (
+    '<span class="brand-mark">'
+    + svg_image(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="#fff" '
+        'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+        '<path d="M16 15c-4-1-6-4-5-8 4 0 6 3 5 8zM16 15c1-5 4-7 8-6 0 4-3 6-8 6z" fill="#BFE3D3"/>'
+        '<path d="M16 14v3"/><ellipse cx="16" cy="22" rx="7" ry="6" fill="#BFE3D3"/>'
+        '<circle cx="13.5" cy="21.5" r=".9" fill="#0A5149" stroke="none"/>'
+        '<circle cx="18.5" cy="21.5" r=".9" fill="#0A5149" stroke="none"/></svg>',
+        "",
+        26,
+    )
+    + "</span>"
+)
 
 EXAMPLES = {
     "Praise": "Absolutely love this product, works perfectly and arrived early!",
@@ -96,11 +111,21 @@ def clear_mode_results() -> None:
     st.session_state.game_score = [0, 0]
 
 
+def senti(slot, mood: str, confidence: float = 0, message: str | None = None) -> None:
+    """Senti mirrors a real state: welcome, thinking, or the shown result's mood."""
+    if st.session_state.get("show_senti", True):
+        slot.iframe(render_senti(mood, confidence, message, compact=True), height=230)
+
+
 def live_review(predictor) -> None:
     mode = st.session_state.get("analysis_mode", "Fast Mode")
     left, right = st.columns([1.05, 1], gap="large")
+    with right:
+        # Created first so Senti can show the thinking state while the model runs.
+        card = st.container(border=True, key="live_verdict")
+        mascot = st.container(key="live_mascot").empty()
     with left, st.container(border=True):
-        st.subheader("Review")
+        st.subheader("Your review")
         text = st.text_area(
             "Product review",
             key="review",
@@ -114,11 +139,19 @@ def live_review(predictor) -> None:
             '<div class="editing-review-note">Editing review. Press Analyze review when ready.</div>'
         )
         a, b = st.columns([2, 1])
-        requested = a.button("Analyze review", type="primary", width="stretch")
-        b.button("Clear", on_click=clear_review, width="stretch")
-        st.caption("Load an example review (written for this demo; it only fills the text box):")
+        requested = a.button(
+            "Analyze review", type="primary", icon=":material/insights:", width="stretch"
+        )
+        b.button("Clear", icon=":material/close:", on_click=clear_review, width="stretch")
+        st.caption("Or try an example (written for this demo; it only fills the text box):")
         for col, (label, sample) in zip(st.columns(3), EXAMPLES.items()):
-            col.button(label, on_click=load_example, args=(sample,), width="stretch")
+            col.button(
+                label,
+                key=f"sample_{label.lower()}",
+                on_click=load_example,
+                args=(sample,),
+                width="stretch",
+            )
         st.caption(
             f"Mode: **{mode}**. "
             + (
@@ -126,9 +159,10 @@ def live_review(predictor) -> None:
                 if mode == "Fast Mode"
                 else "Reviews the TF-IDF model is less than 80% sure of go to a transformer."
             )
-            + " Change the mode in the sidebar."
+            + " Change it in the sidebar."
         )
         if requested:
+            senti(mascot, "thinking")
             try:
                 with st.spinner("Analyzing…"):
                     started = time.perf_counter()
@@ -157,9 +191,13 @@ def live_review(predictor) -> None:
         if text != st.session_state.get("analyzed_text"):
             result = None
             st.session_state.result = None
-    with right:
-        with st.container(border=True, key="live_verdict"):
-            st.subheader("Result")
+    with card:
+        st.subheader("Result")
+        st.html(
+            '<div class="editing-result-note">Editing… the result will update when you press '
+            "Analyze review.</div>"
+        )
+        with st.container(key="live_result"):
             if st.session_state.pop("result_error", False):
                 st.error(
                     "The model could not analyze this review. Your text is kept; try again "
@@ -168,28 +206,33 @@ def live_review(predictor) -> None:
             elif text.strip() and st.session_state.get("analyzed_text") not in (None, text):
                 st.info("The review changed since the last analysis. Press Analyze review.")
             show_result(text, result)
-        if st.session_state.get("show_senti", True):
-            valid = text.strip() and result and result["status"] == "ok"
-            with st.container(key="live_mascot"):
-                st.iframe(
-                    render_senti(
-                        presentation_mood(result) if valid else "idle",
-                        result["confidence"] if valid else 0,
-                        compact=True,
-                    ),
-                    height=230,
-                )
+    valid = text.strip() and result and result["status"] == "ok"
+    senti(
+        mascot,
+        presentation_mood(result) if valid else "welcome",
+        result["confidence"] if valid else 0,
+    )
+
+
+def reading(label: str, tentative: bool) -> str:
+    """A plain sentence built only from the label and the existing tentative rule."""
+    if tentative:
+        return (
+            f"The model leans <b>{label}</b>, but it is not sure. Read the review yourself "
+            "before relying on this."
+        )
+    return f"The model reads this review as <b>{label}</b>."
 
 
 def show_result(text: str, result: dict | None) -> None:
     """Keep model probabilities intact while making uncertainty explicit."""
     if not (text.strip() and result):
         st.html(
-            '<div class="onboard"><p>Results appear here after you press '
-            "<strong>Analyze review</strong>:</p><ul><li>the predicted sentiment</li>"
-            "<li>calibrated probabilities for all three classes</li><li>how the label was "
-            "chosen and any reason to treat it as tentative</li><li>the model, mode and "
-            "time taken</li></ul></div>"
+            '<div class="onboard"><p>Paste a review on the left and press '
+            "<strong>Analyze review</strong>. You will see:</p><ul><li>the predicted "
+            "sentiment and how sure the model is</li><li>calibrated probabilities for all "
+            "three classes</li><li>how the label was chosen, and any reason to treat it as "
+            "tentative</li><li>the model, mode and time taken</li></ul></div>"
         )
         return
     if result["status"] != "ok":
@@ -204,10 +247,12 @@ def show_result(text: str, result: dict | None) -> None:
     tentative = presentation_mood(result) == "unsure"
     if result.get("warning"):
         st.warning(result["warning"])
+    tag = "tentative" if tentative else "clear"
     st.html(
         f'<div class="verdict-row"><span class="verdict {label}">{html.escape(badge(label))}'
-        f'</span><span class="muted">{"Tentative" if tentative else "Clear"} result · '
-        f"probability {result['confidence']:.1%}</span></div>"
+        f'</span><span class="muted">Model probability {result["confidence"]:.1%}</span></div>'
+        f'<p class="reading"><span class="tag {tag}">{tag.title()}</span>'
+        f"{reading(html.escape(label), tentative)}</p>"
         f'<div role="status" aria-live="polite" class="sr-only">Result: {html.escape(label)}, '
         f"probability {result['confidence']:.0%}{', tentative' if tentative else ''}.</div>"
     )
@@ -222,10 +267,6 @@ def show_result(text: str, result: dict | None) -> None:
             "review yourself before relying on this label."
         )
     meta = st.session_state.get("result_meta") or {}
-    if meta:
-        st.caption(
-            f"{meta['mode']} · {meta.get('model', '')} · {meta['elapsed_ms']:.0f} ms · {meta['at']}"
-        )
     copy, report = st.columns(2)
     with copy.popover("Copy result", icon=":material/content_copy:", width="stretch"):
         st.code(
@@ -235,7 +276,7 @@ def show_result(text: str, result: dict | None) -> None:
             language=None,
             wrap_lines=True,
         )
-        st.caption("Use the copy button in the box's corner.")
+        st.caption("Use the copy button in the corner; it shows a tick once copied.")
     with report.popover("Report incorrect", icon=":material/flag:", width="stretch"):
         expected = st.radio(
             "What should the sentiment be?",
@@ -245,6 +286,12 @@ def show_result(text: str, result: dict | None) -> None:
         if st.button("Save feedback", key="save_feedback"):
             save_feedback(text, expected)
         st.caption("Saved with this session's history only; nothing is sent anywhere.")
+    if meta:
+        st.html(
+            f'<div class="result-foot">{html.escape(meta["mode"])} · '
+            f"{html.escape(meta.get('model', ''))} · {meta['elapsed_ms']:.0f} ms · "
+            f"{html.escape(meta['at'])}</div>"
+        )
 
 
 def uncertainty_notes(result: dict) -> list[str]:
@@ -622,35 +669,39 @@ def render(predictor) -> None:
     page = current_page()
     with st.sidebar:
         st.html(
-            '<div class="brand"><span class="brand-mark" aria-hidden="true">✦</span>'
-            "<div><strong>Sentix AI</strong><span>Product review intelligence</span></div></div>"
+            f'<div class="brand">{BRAND_MARK}<div><strong>Sentix AI</strong>'
+            "<span>Product review intelligence</span></div></div>"
         )
         sidebar_nav(page)
         st.divider()
+        st.html('<div class="side-label">Settings</div>')
         mode = st.radio(
             "Analysis mode",
             ["Fast Mode", "Deep Mode"],
             key="analysis_mode",
             on_change=clear_mode_results,
-            help="Deep Mode defers only when the production predicted-class probability is below 0.80. There is no separate neutral override.",
+            horizontal=True,
+            help="Fast: the TF-IDF model reads every review. Deep: reviews it is less than "
+            "80% sure of go to a transformer.",
         )
-        if mode == "Deep Mode":
-            st.caption(
-                "Deep Mode sends reviews the Fast model is less than 80% sure of to an int8 "
-                "transformer. In our test it found more neutral reviews but missed more "
-                "negative ones, and was not better overall. The first transformer review "
-                "loads the model (and downloads about 244 MB unless a verified local copy is "
-                "configured). If Deep Mode is unavailable, results say so and use Fast Mode."
-            )
         st.toggle(
             "Show Senti",
             key="show_senti",
             help="The animated companion on the Review Analyzer.",
             **initial("show_senti", value=True),
         )
-        st.caption(
-            "Deep Mode credits: [CardiffNLP Twitter-RoBERTa sentiment](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest), CC BY 4.0. The int8 copy is a quantized, non-fine-tuned derivative."
-        )
+        with st.popover("About the modes", icon=":material/info:", width="stretch"):
+            st.markdown(
+                "**Fast Mode** reads every review with the calibrated TF-IDF model.\n\n"
+                "**Deep Mode** sends reviews the Fast model is less than 80% sure of to an "
+                "int8 transformer. In our test it found more neutral reviews but missed more "
+                "negative ones, and was not better overall. The first transformer review "
+                "loads the model (and downloads about 244 MB unless a verified local copy is "
+                "configured). If Deep Mode is unavailable, results say so and use Fast Mode."
+            )
+            st.caption(
+                "Deep Mode credits: [CardiffNLP Twitter-RoBERTa sentiment](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest), CC BY 4.0. The int8 copy is a quantized, non-fine-tuned derivative."
+            )
     selected = predictor
     progress_slot = st.empty()
     if mode == "Deep Mode":

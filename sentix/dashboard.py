@@ -15,7 +15,7 @@ import streamlit as st
 from sentix import charts
 from sentix import dataset as ds
 from sentix.bulk import analyze
-from sentix.mascot import unsure_threshold
+from sentix.mascot import senti_img, unsure_threshold
 from sentix.state import go, initial, reset_filters, set_dataset
 from src.predict import export_csv
 
@@ -54,6 +54,15 @@ def load_sample_dataset(predictor) -> None:
         frame,
         {"name": ds.SAMPLE_NAME, "kind": "sample", "mode": "Fast Mode", "note": SAMPLE_NOTE},
     )
+    st.toast(f"Sample loaded: {len(frame):,} reviews scored.", icon=":material/check_circle:")
+
+
+def empty(title: str, body: str) -> None:
+    """Shared empty state with a small, static Senti welcoming the user."""
+    st.html(
+        f'<div class="empty">{senti_img("welcome")}<div><h2>{html.escape(title)}</h2>'
+        f"<p>{html.escape(body)}</p></div></div>"
+    )
 
 
 def use_history() -> None:
@@ -69,6 +78,9 @@ def use_history() -> None:
             },
         )
         go("Overview")
+        st.toast(
+            f"Using {len(entries)} analyzed reviews as the dataset.", icon=":material/check_circle:"
+        )
 
 
 def record_history(text: str, result: dict, mode: str, elapsed_ms: float, model: str = "") -> None:
@@ -125,7 +137,7 @@ def display_frame(frame: pd.DataFrame, preview: int = 160) -> pd.DataFrame:
     if "product" in frame:
         out["Product"] = frame["product"].to_numpy()
     out["Review"] = (
-        frame.review_text.astype(str)
+        frame.review_text.map(lambda t: " ".join(ds.display_text(t).split()))
         .map(lambda t: t if len(t) <= preview else t[: preview - 1] + "…")
         .to_numpy()
     )
@@ -163,10 +175,11 @@ def context(meta: dict, frame: pd.DataFrame) -> None:
 
 
 def empty_state(predictor) -> None:
-    st.html(
-        '<div class="empty"><h2>No dataset loaded yet</h2><p>The overview summarizes a set of '
-        "reviews scored by the model. Upload a CSV in Batch Analysis, load the bundled sample "
-        "of real reviews, or use the reviews you analyzed in this session.</p></div>"
+    empty(
+        "No dataset loaded yet",
+        "The overview summarizes a set of reviews scored by the model. Upload a CSV in Batch "
+        "Analysis, load the bundled sample of real reviews, or use the reviews you analyzed "
+        "in this session.",
     )
     a, b, c = st.columns(3)
     if a.button("Load sample dataset", type="primary", width="stretch"):
@@ -619,7 +632,7 @@ def detail(row: pd.Series, number: int) -> None:
         if facts:
             st.text(" · ".join(facts))
         st.caption("Full review text. Use the copy button in the box's corner.")
-        st.code(str(row.review_text), language=None, wrap_lines=True)
+        st.code(ds.display_text(row.review_text), language=None, wrap_lines=True)
 
 
 def history(predictor) -> None:
@@ -630,9 +643,10 @@ def history(predictor) -> None:
         "analyses are kept."
     )
     if not entries:
-        st.html(
-            '<div class="empty"><h2>No analyses yet</h2><p>Reviews you analyze in Review '
-            "Analyzer appear here with their prediction and time.</p></div>"
+        empty(
+            "No analyses yet",
+            "Reviews you analyze in Review Analyzer appear here with their prediction, model "
+            "and time.",
         )
         st.button("Analyze a review", on_click=go, args=("Review Analyzer",), type="primary")
         return

@@ -5,6 +5,7 @@ products come only from columns the user mapped; nothing is inferred when they a
 """
 
 import math
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,6 +30,14 @@ STOP_WORDS = ENGLISH_STOP_WORDS - {"not", "no", "nor", "never", "nothing", "very
 SAMPLE_PATH = Path(__file__).resolve().parents[1] / "reports/approved_20261016/test.csv"
 SAMPLE_NAME = "Sample: 2,698 real Amazon reviews"
 MIN_TREND_ROWS = 30
+
+
+def display_text(text) -> str:
+    """Readable review text for display only: source reviews contain literal <br /> tags.
+
+    The model always receives the original text; this never feeds predictions.
+    """
+    return re.sub(r"(?i)<br\s*/?>", "\n", str(text))
 
 
 def badge(label: str) -> str:

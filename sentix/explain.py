@@ -132,6 +132,12 @@ def render(predictor) -> None:
         if not contributions:
             st.info("No word explanation is available for this review.")
             return
+        st.html(
+            '<div class="legend"><span><i style="background:rgba(83,184,130,.7)"></i>Pushes '
+            'toward positive</span><span><i style="background:rgba(232,111,111,.7)"></i>Pushes '
+            "toward negative</span><span>Stronger colour means a bigger push; hover a word for "
+            "its value</span></div>"
+        )
         st.markdown(highlight(text, contributions), unsafe_allow_html=True)
         st.caption(
             "Green pushes toward positive; red toward negative. Linear explanations use pre-calibration positive-minus-negative scores, omit character features and intercepts, and divide n-grams among words. Text is normalized. Nonlinear fallback uses at most 80 words and probability perturbations."

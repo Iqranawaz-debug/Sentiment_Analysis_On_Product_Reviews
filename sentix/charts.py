@@ -1,15 +1,46 @@
 """Altair charts with fixed class colors and text labels. Altair ships with Streamlit."""
 
+import functools
+
 import altair as alt
 import pandas as pd
 
 from sentix.dataset import COLORS, LABELS
 
 SCALE = alt.Scale(domain=list(LABELS), range=[COLORS[label] for label in LABELS])
+MUTED, LINE, INK = "#56656F", "#D3DDD6", "#1B2B33"
+
+
+def styled(build):
+    """One visual language for every chart: quiet axes, no gridlines, readable labels."""
+
+    @functools.wraps(build)
+    def wrapper(*args, **kwargs):
+        return (
+            build(*args, **kwargs)
+            .configure_axis(
+                grid=False,
+                labelFontSize=12,
+                titleFontSize=12,
+                labelColor=MUTED,
+                titleColor=MUTED,
+                titleFontWeight=600,
+                domainColor=LINE,
+                tickColor=LINE,
+                labelPadding=6,
+            )
+            .configure_legend(labelFontSize=12, labelColor=INK, symbolType="circle", symbolSize=90)
+            .configure_view(stroke=None)
+        )
+
+    return wrapper
+
+
 # Review counts are whole numbers; without this, small counts get 0.2-step ticks.
 COUNT_AXIS = alt.Axis(format=",d", tickMinStep=1)
 
 
+@styled
 def distribution(table: pd.DataFrame) -> alt.Chart:
     data = table.assign(text=[f"{c:,} ({s:.1%})" for c, s in zip(table["count"], table.share)])
     base = alt.Chart(data).encode(
@@ -21,13 +52,16 @@ def distribution(table: pd.DataFrame) -> alt.Chart:
             alt.Tooltip("share:Q", title="Share of analyzed", format=".1%"),
         ],
     )
-    bars = base.mark_bar(cornerRadiusEnd=4).encode(
+    bars = base.mark_bar(cornerRadiusEnd=6, height={"band": 0.62}).encode(
         color=alt.Color("sentiment:N", scale=SCALE, legend=None)
     )
-    labels = base.mark_text(align="left", dx=4, color="#172B3A").encode(text="text:N")
+    labels = base.mark_text(align="left", dx=6, color=INK, fontSize=12, fontWeight=600).encode(
+        text="text:N"
+    )
     return (bars + labels).properties(height=150)
 
 
+@styled
 def probabilities(values: dict) -> alt.Chart:
     data = pd.DataFrame({"sentiment": list(values), "probability": list(values.values())})
     base = alt.Chart(data).encode(
@@ -35,15 +69,16 @@ def probabilities(values: dict) -> alt.Chart:
         x=alt.X("probability:Q", scale=alt.Scale(domain=[0, 1]), axis=alt.Axis(format="%")),
         tooltip=[alt.Tooltip("sentiment:N"), alt.Tooltip("probability:Q", format=".1%")],
     )
-    bars = base.mark_bar(cornerRadiusEnd=4).encode(
+    bars = base.mark_bar(cornerRadiusEnd=6, height={"band": 0.62}).encode(
         color=alt.Color("sentiment:N", scale=SCALE, legend=None)
     )
-    text = base.mark_text(align="left", dx=4, color="#172B3A").encode(
+    text = base.mark_text(align="left", dx=6, color=INK, fontSize=12, fontWeight=600).encode(
         text=alt.Text("probability:Q", format=".1%")
     )
     return (bars + text).properties(height=130)
 
 
+@styled
 def trend(table: pd.DataFrame, field: str) -> alt.Chart:
     title = "Share of analyzed reviews" if field == "share" else "Reviews"
     return (
@@ -72,6 +107,7 @@ def trend(table: pd.DataFrame, field: str) -> alt.Chart:
     )
 
 
+@styled
 def ratings(table: pd.DataFrame) -> alt.Chart:
     long = table.reset_index().melt(id_vars="rating", var_name="sentiment", value_name="count")
     long["total"] = long.groupby("rating")["count"].transform("sum")
@@ -105,6 +141,7 @@ def ratings(table: pd.DataFrame) -> alt.Chart:
     )
 
 
+@styled
 def segments(table: pd.DataFrame, title: str) -> alt.Chart:
     order = list(dict.fromkeys(table.segment))
     labels = {s: f"{s} (n={n:,})" for s, n in zip(table.segment, table.total)}
@@ -140,6 +177,7 @@ def segments(table: pd.DataFrame, title: str) -> alt.Chart:
     )
 
 
+@styled
 def confidence(frame: pd.DataFrame) -> alt.Chart:
     data = frame[frame.status == "ok"][["sentiment", "confidence"]]
     return (
@@ -162,6 +200,7 @@ def confidence(frame: pd.DataFrame) -> alt.Chart:
     )
 
 
+@styled
 def confusion(matrix: list[list[int]], order: list[str]) -> alt.Chart:
     rows = [
         {"actual": actual, "predicted": predicted, "count": matrix[i][j]}

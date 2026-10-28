@@ -211,3 +211,8 @@ def test_sample_dataset_uses_real_model_and_ratings():
     probabilities = ok[[f"probability_{k}" for k in ds.LABELS]].sum(axis=1)
     assert np.allclose(probabilities, 1)
     assert frame.rating.between(1, 5).all()
+
+
+def test_display_text_only_converts_line_break_tags():
+    assert ds.display_text("Good.<br /><br />Fast<BR>ok") == "Good.\n\nFast\nok"
+    assert ds.display_text("<script>x</script>") == "<script>x</script>"  # still plain text
