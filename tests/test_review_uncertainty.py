@@ -11,19 +11,19 @@ def test_edit_invalidates_then_reanalyzes():
     app = AppTest.from_file(
         Path(__file__).resolve().parents[1] / "app.py", default_timeout=30
     ).run()
-    next(b for b in app.button if b.label == "😍 Love").click().run()
+    next(b for b in app.button if b.label == "Praise").click().run()
+    next(b for b in app.button if b.label == "Analyze review").click().run()
     assert app.session_state.result["label"] == "positive"
-    app.text_area[0].set_value("Absolutely hate it").run()
+    app.text_area(key="review").set_value("Absolutely hate it").run()
     assert app.session_state.result is None
-    assert any("Review changed. Press Read the mood." in x.value for x in app.info)
-    next(b for b in app.button if b.label == "Read the mood").click().run()
+    assert any("changed since the last analysis" in x.value for x in app.info)
+    next(b for b in app.button if b.label == "Analyze review").click().run()
     assert not app.exception
     assert app.session_state.analyzed_text == "Absolutely hate it"
     assert presentation_mood(app.session_state.result) == "unsure"
-    assert any(
-        "Top two: Positive 64.9%" in x.value and "Negative 34.1%" in x.value for x in app.markdown
-    )
-    app.text_area[0].set_value("").run()
+    assert any("positive 64.9%" in x.value and "negative 34.1%" in x.value for x in app.caption)
+    assert any("Tentative: the probability is below 70%" in x.value for x in app.info)
+    app.text_area(key="review").set_value("").run()
     assert app.session_state.result is None
 
 

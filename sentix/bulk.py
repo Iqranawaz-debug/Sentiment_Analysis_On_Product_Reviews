@@ -149,10 +149,18 @@ def render(predictor) -> None:
             mapping = column_mapping(names)
             st.dataframe(frame.head(5), hide_index=True)
             st.caption(f"First 5 of {len(frame):,} rows, shown exactly as read.")
-        blank = int(frame[column].str.strip().eq("").sum())
+        cells = frame[column].str.strip()
+        blank = int(cells.eq("").sum())
+        repeated = int(cells[cells.ne("")].str.lower().duplicated().sum())
         st.caption(
             f"{len(frame):,} rows ready · {blank:,} empty review cells will be reported as "
-            "unavailable, not dropped."
+            "unavailable, not dropped"
+            + (
+                f" · {repeated:,} rows repeat an earlier review; all are kept and scored"
+                if repeated
+                else ""
+            )
+            + "."
         )
         signature = (content, column, limit)
         if st.button("Analyze CSV", type="primary"):
@@ -190,6 +198,13 @@ def render(predictor) -> None:
             )
         counts = (
             result[result.status == "ok"].sentiment.value_counts().reindex(LABELS, fill_value=0)
+        )
+        analyzed = int(counts.sum())
+        st.success(
+            f"Finished: {len(result):,} of {len(frame):,} input rows processed. "
+            f"{analyzed:,} analyzed + {len(result) - analyzed:,} unavailable "
+            f"= {len(result):,}."
+            + (f" Rows after the first {limit:,} were not analyzed." if truncated else "")
         )
         score = mood_score(result)
         a, b = st.columns(2)

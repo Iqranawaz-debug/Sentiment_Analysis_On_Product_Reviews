@@ -10,6 +10,7 @@ def inject_theme() -> None:
       --brand-ink:#0E5C55;--pos:#1E7F4F;--neu:#B7791F;--neg:#C0392B}
     .block-container{max-width:1240px;padding-top:1.6rem;padding-bottom:3rem}
     .stMain h2{font-size:1.15rem;font-weight:650;letter-spacing:-.01em;padding-top:.2rem}
+    .stMain h3{font-size:1.25rem;font-weight:650;letter-spacing:-.01em}
     .page-head{margin:0 0 1.2rem;padding-bottom:1rem;border-bottom:1px solid var(--line)}
     .page-head h1{font-size:1.9rem;letter-spacing:-.03em;margin:.15rem 0 .2rem;padding:0;color:var(--ink)}
     .page-head p{margin:0;color:var(--muted)}
@@ -18,6 +19,17 @@ def inject_theme() -> None:
     .brand-mark{display:grid;place-items:center;width:2.2rem;height:2.2rem;border-radius:10px;background:var(--brand);color:#fff;font-size:1.1rem}
     .brand strong{display:block;font-size:1.05rem;color:var(--ink)}.brand span{font-size:.78rem;color:var(--muted)}
     .stButton button,.stDownloadButton button{border-radius:10px;min-height:2.6rem}
+    .nav-group{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:.9rem 0 .15rem .3rem}
+    [class*="st-key-nav_"] button{justify-content:flex-start;min-height:2.3rem;padding:.25rem .7rem;border-radius:8px;font-weight:500}
+    [class*="st-key-nav_"] button > div,[class*="st-key-nav_"] button > div > span{justify-content:flex-start;width:100%;gap:.55rem}
+    [class*="st-key-nav_"] button[kind="primary"]{box-shadow:inset 3px 0 0 var(--brand-ink);font-weight:650}
+    [class*="st-key-nav_"] button[kind="tertiary"]:hover{background:#E6F2EF}
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"]{gap:.15rem}
+    .chips{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:flex-end;margin-bottom:1.3rem}
+    .chip{font-size:.78rem;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:.2rem .65rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .onboard{color:var(--muted);font-size:.92rem}.onboard ul{margin:.3rem 0 0 1.1rem;padding:0}.onboard li{margin:.15rem 0}
+    .verdict-row{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin:.2rem 0 .4rem}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     .stTextArea textarea{border-radius:12px}
     :focus-visible{outline:3px solid #1B6FD1 !important;outline-offset:2px}
     .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.8rem;margin:.2rem 0 1rem}

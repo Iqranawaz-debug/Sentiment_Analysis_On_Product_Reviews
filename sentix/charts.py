@@ -105,6 +105,41 @@ def ratings(table: pd.DataFrame) -> alt.Chart:
     )
 
 
+def segments(table: pd.DataFrame, title: str) -> alt.Chart:
+    order = list(dict.fromkeys(table.segment))
+    labels = {s: f"{s} (n={n:,})" for s, n in zip(table.segment, table.total)}
+    data = table.assign(label=table.segment.map(labels))
+    return (
+        alt.Chart(data)
+        .mark_bar()
+        .encode(
+            y=alt.Y(
+                "label:N",
+                title=title,
+                sort=[labels[s] for s in order],
+                axis=alt.Axis(labelOverlap=False, labelLimit=260),
+            ),
+            x=alt.X(
+                "share:Q",
+                stack="normalize",
+                title="Predicted sentiment mix",
+                axis=alt.Axis(format="%"),
+            ),
+            color=alt.Color(
+                "sentiment:N", scale=SCALE, legend=alt.Legend(orient="top", title=None)
+            ),
+            order=alt.Order("sentiment:N", sort="ascending"),
+            tooltip=[
+                alt.Tooltip("segment:N", title=title),
+                alt.Tooltip("sentiment:N"),
+                alt.Tooltip("count:Q", format=","),
+                alt.Tooltip("share:Q", format=".1%", title="Share of segment"),
+            ],
+        )
+        .properties(height=alt.Step(30))
+    )
+
+
 def confidence(frame: pd.DataFrame) -> alt.Chart:
     data = frame[frame.status == "ok"][["sentiment", "confidence"]]
     return (

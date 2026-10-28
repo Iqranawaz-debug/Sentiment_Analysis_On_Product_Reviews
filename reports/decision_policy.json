@@ -1,0 +1,644 @@
+{
+  "schema_version": 1,
+  "artifact_sha256": "85edf60258b04b218bde4d4f7c954176454ee7f42ddeb6816985e53fd72617a0",
+  "rule": "argmax(p_c / prior_c ** alpha)",
+  "alpha": 0.3,
+  "priors": {
+    "negative": 0.141571,
+    "neutral": 0.074286,
+    "positive": 0.784143
+  },
+  "weights": {
+    "negative": 1.797659,
+    "neutral": 2.181365,
+    "positive": 1.075676
+  },
+  "adopted": true,
+  "selected_on": "reports/approved_20261016/validation.csv",
+  "created_utc": "2026-10-28T15:52:28+00:00",
+  "protocol": "- Data: reports/approved_20261016 splits, which exclude all 30,000 rows of the\n  production sample and near-duplicates of them, so they are held out from the\n  production model. Labels are star-rating proxies.\n- alpha is chosen on the validation split only: highest macro-F1 among values\n  whose validation accuracy is within 3 points of alpha = 0.\n- The rule is adopted only if validation macro-F1 improves by at least 0.01.\n- The test split and the 24-review regression set are scored once afterwards.",
+  "validation_grid": [
+    {
+      "alpha": 0.0,
+      "accuracy": 0.8774527952610144,
+      "macro_f1": 0.6115536849866733
+    },
+    {
+      "alpha": 0.05,
+      "accuracy": 0.8770825620140689,
+      "macro_f1": 0.6145615303538466
+    },
+    {
+      "alpha": 0.1,
+      "accuracy": 0.8748611625323954,
+      "macro_f1": 0.6176291612433035
+    },
+    {
+      "alpha": 0.15,
+      "accuracy": 0.8733802295446131,
+      "macro_f1": 0.6151045070012687
+    },
+    {
+      "alpha": 0.2,
+      "accuracy": 0.8693076638282118,
+      "macro_f1": 0.615504669339835
+    },
+    {
+      "alpha": 0.25,
+      "accuracy": 0.8659755646057016,
+      "macro_f1": 0.6195106868917527
+    },
+    {
+      "alpha": 0.3,
+      "accuracy": 0.8652350981118104,
+      "macro_f1": 0.6276677638282937
+    },
+    {
+      "alpha": 0.35,
+      "accuracy": 0.8622732321362458,
+      "macro_f1": 0.6254912366761408
+    },
+    {
+      "alpha": 0.4,
+      "accuracy": 0.8582006664198445,
+      "macro_f1": 0.6250947847572963
+    },
+    {
+      "alpha": 0.45,
+      "accuracy": 0.8515364679748242,
+      "macro_f1": 0.6221796310213453
+    },
+    {
+      "alpha": 0.5,
+      "accuracy": 0.8445020362828582,
+      "macro_f1": 0.6223475521261351
+    },
+    {
+      "alpha": 0.55,
+      "accuracy": 0.8404294705664569,
+      "macro_f1": 0.6221411326579549
+    },
+    {
+      "alpha": 0.6,
+      "accuracy": 0.8337652721214365,
+      "macro_f1": 0.6206220922404581
+    },
+    {
+      "alpha": 0.65,
+      "accuracy": 0.8241392077008516,
+      "macro_f1": 0.6160080288657562
+    },
+    {
+      "alpha": 0.7,
+      "accuracy": 0.8130322102924843,
+      "macro_f1": 0.611075142872998
+    },
+    {
+      "alpha": 0.75,
+      "accuracy": 0.8004442798963347,
+      "macro_f1": 0.6058191624785813
+    },
+    {
+      "alpha": 0.8,
+      "accuracy": 0.7852647167715661,
+      "macro_f1": 0.5969517762140714
+    },
+    {
+      "alpha": 0.85,
+      "accuracy": 0.7663828211773417,
+      "macro_f1": 0.5881556569824102
+    },
+    {
+      "alpha": 0.9,
+      "accuracy": 0.7456497593483895,
+      "macro_f1": 0.5769674863087815
+    },
+    {
+      "alpha": 0.95,
+      "accuracy": 0.7234357645316549,
+      "macro_f1": 0.5659704541121586
+    },
+    {
+      "alpha": 1.0,
+      "accuracy": 0.6941873380229545,
+      "macro_f1": 0.5485665156614071
+    }
+  ],
+  "validation_chosen": {
+    "alpha": 0.3,
+    "accuracy": 0.8652350981118104,
+    "macro_f1": 0.6276677638282937
+  },
+  "test": {
+    "before": {
+      "n": 2698,
+      "accuracy": 0.8558191252779836,
+      "macro_f1": 0.5877528234164996,
+      "weighted_f1": 0.830218601939476,
+      "per_class": {
+        "negative": {
+          "precision": 0.725,
+          "recall": 0.6089238845144357,
+          "f1": 0.6619115549215406,
+          "support": 381
+        },
+        "neutral": {
+          "precision": 0.45098039215686275,
+          "recall": 0.107981220657277,
+          "f1": 0.17424242424242425,
+          "support": 213
+        },
+        "positive": {
+          "precision": 0.88268156424581,
+          "recall": 0.9762357414448669,
+          "f1": 0.9271044910855337,
+          "support": 2104
+        }
+      },
+      "confusion_matrix": [
+        [
+          232,
+          13,
+          136
+        ],
+        [
+          53,
+          23,
+          137
+        ],
+        [
+          35,
+          15,
+          2054
+        ]
+      ]
+    },
+    "after": {
+      "n": 2698,
+      "accuracy": 0.8639733135656041,
+      "macro_f1": 0.6454419367255534,
+      "weighted_f1": 0.8519731002241315,
+      "per_class": {
+        "negative": {
+          "precision": 0.6913265306122449,
+          "recall": 0.7112860892388452,
+          "f1": 0.7011642949547219,
+          "support": 381
+        },
+        "neutral": {
+          "precision": 0.4485981308411215,
+          "recall": 0.22535211267605634,
+          "f1": 0.3,
+          "support": 213
+        },
+        "positive": {
+          "precision": 0.9149613460663938,
+          "recall": 0.9562737642585551,
+          "f1": 0.9351615152219381,
+          "support": 2104
+        }
+      },
+      "confusion_matrix": [
+        [
+          271,
+          25,
+          85
+        ],
+        [
+          63,
+          48,
+          102
+        ],
+        [
+          58,
+          34,
+          2012
+        ]
+      ]
+    },
+    "changed_predictions": 136,
+    "paired_bootstrap_delta": {
+      "accuracy": {
+        "lower": 0.0007412898443291932,
+        "upper": 0.015567086730911783
+      },
+      "macro_f1": {
+        "lower": 0.03811403879967891,
+        "upper": 0.07989402358399458
+      },
+      "resamples": 1000,
+      "seed": 20261028
+    },
+    "short_reviews": {
+      "before": {
+        "n": 312,
+        "accuracy": 0.8974358974358975,
+        "macro_f1": 0.5490610328638498,
+        "weighted_f1": 0.8778236728060671,
+        "per_class": {
+          "negative": {
+            "precision": 0.8181818181818182,
+            "recall": 0.36,
+            "f1": 0.5,
+            "support": 25
+          },
+          "neutral": {
+            "precision": 0.3333333333333333,
+            "recall": 0.14285714285714285,
+            "f1": 0.2,
+            "support": 14
+          },
+          "positive": {
+            "precision": 0.911864406779661,
+            "recall": 0.9853479853479854,
+            "f1": 0.9471830985915493,
+            "support": 273
+          }
+        },
+        "confusion_matrix": [
+          [
+            9,
+            1,
+            15
+          ],
+          [
+            1,
+            2,
+            11
+          ],
+          [
+            1,
+            3,
+            269
+          ]
+        ]
+      },
+      "after": {
+        "n": 312,
+        "accuracy": 0.8782051282051282,
+        "macro_f1": 0.5370254729008924,
+        "weighted_f1": 0.8678858462979531,
+        "per_class": {
+          "negative": {
+            "precision": 0.5789473684210527,
+            "recall": 0.44,
+            "f1": 0.5,
+            "support": 25
+          },
+          "neutral": {
+            "precision": 0.2222222222222222,
+            "recall": 0.14285714285714285,
+            "f1": 0.17391304347826086,
+            "support": 14
+          },
+          "positive": {
+            "precision": 0.9190140845070423,
+            "recall": 0.9560439560439561,
+            "f1": 0.9371633752244165,
+            "support": 273
+          }
+        },
+        "confusion_matrix": [
+          [
+            11,
+            1,
+            13
+          ],
+          [
+            2,
+            2,
+            10
+          ],
+          [
+            6,
+            6,
+            261
+          ]
+        ]
+      }
+    },
+    "app": {
+      "n": 2698,
+      "accuracy": 0.8621200889547813,
+      "macro_f1": 0.6450290165747941,
+      "weighted_f1": 0.8510070690930743,
+      "per_class": {
+        "negative": {
+          "precision": 0.6913265306122449,
+          "recall": 0.7112860892388452,
+          "f1": 0.7011642949547219,
+          "support": 381
+        },
+        "neutral": {
+          "precision": 0.4485981308411215,
+          "recall": 0.22535211267605634,
+          "f1": 0.3,
+          "support": 213
+        },
+        "positive": {
+          "precision": 0.914767547857794,
+          "recall": 0.9538973384030418,
+          "f1": 0.9339227547696604,
+          "support": 2104
+        }
+      },
+      "confusion_matrix": [
+        [
+          271,
+          25,
+          85
+        ],
+        [
+          63,
+          48,
+          102
+        ],
+        [
+          58,
+          34,
+          2007
+        ]
+      ],
+      "unavailable_counted_incorrect": 5
+    }
+  },
+  "regression": {
+    "before": {
+      "n": 24,
+      "accuracy": 0.5833333333333334,
+      "macro_f1": 0.5537878787878787,
+      "weighted_f1": 0.5537878787878787,
+      "per_class": {
+        "negative": {
+          "precision": 0.625,
+          "recall": 0.625,
+          "f1": 0.625,
+          "support": 8
+        },
+        "neutral": {
+          "precision": 1.0,
+          "recall": 0.25,
+          "f1": 0.4,
+          "support": 8
+        },
+        "positive": {
+          "precision": 0.5,
+          "recall": 0.875,
+          "f1": 0.6363636363636364,
+          "support": 8
+        }
+      },
+      "confusion_matrix": [
+        [
+          5,
+          0,
+          3
+        ],
+        [
+          2,
+          2,
+          4
+        ],
+        [
+          1,
+          0,
+          7
+        ]
+      ]
+    },
+    "after": {
+      "n": 24,
+      "accuracy": 0.6666666666666666,
+      "macro_f1": 0.650445632798574,
+      "weighted_f1": 0.650445632798574,
+      "per_class": {
+        "negative": {
+          "precision": 0.6666666666666666,
+          "recall": 0.75,
+          "f1": 0.7058823529411765,
+          "support": 8
+        },
+        "neutral": {
+          "precision": 1.0,
+          "recall": 0.375,
+          "f1": 0.5454545454545454,
+          "support": 8
+        },
+        "positive": {
+          "precision": 0.5833333333333334,
+          "recall": 0.875,
+          "f1": 0.7,
+          "support": 8
+        }
+      },
+      "confusion_matrix": [
+        [
+          6,
+          0,
+          2
+        ],
+        [
+          2,
+          3,
+          3
+        ],
+        [
+          1,
+          0,
+          7
+        ]
+      ]
+    },
+    "changed_predictions": 2,
+    "cases": [
+      {
+        "review_text": "I love it",
+        "label": "positive",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "Absolutely love it",
+        "label": "positive",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "Excellent product",
+        "label": "positive",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "Works perfectly",
+        "label": "positive",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "Great quality",
+        "label": "positive",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "Very happy with this",
+        "label": "positive",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "Highly recommend",
+        "label": "positive",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "Not bad at all",
+        "label": "positive",
+        "before": "negative",
+        "after": "negative"
+      },
+      {
+        "review_text": "Absolutely hate it",
+        "label": "negative",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "I hate it",
+        "label": "negative",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "Terrible product",
+        "label": "negative",
+        "before": "negative",
+        "after": "negative"
+      },
+      {
+        "review_text": "It broke immediately",
+        "label": "negative",
+        "before": "positive",
+        "after": "negative"
+      },
+      {
+        "review_text": "Waste of money",
+        "label": "negative",
+        "before": "negative",
+        "after": "negative"
+      },
+      {
+        "review_text": "Not good",
+        "label": "negative",
+        "before": "negative",
+        "after": "negative"
+      },
+      {
+        "review_text": "Does not work",
+        "label": "negative",
+        "before": "negative",
+        "after": "negative"
+      },
+      {
+        "review_text": "I do not recommend it",
+        "label": "negative",
+        "before": "negative",
+        "after": "negative"
+      },
+      {
+        "review_text": "It is average",
+        "label": "neutral",
+        "before": "positive",
+        "after": "neutral"
+      },
+      {
+        "review_text": "It is okay",
+        "label": "neutral",
+        "before": "neutral",
+        "after": "neutral"
+      },
+      {
+        "review_text": "Nothing special",
+        "label": "neutral",
+        "before": "negative",
+        "after": "negative"
+      },
+      {
+        "review_text": "Neither good nor bad",
+        "label": "neutral",
+        "before": "negative",
+        "after": "negative"
+      },
+      {
+        "review_text": "An ordinary product",
+        "label": "neutral",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "It is just acceptable",
+        "label": "neutral",
+        "before": "neutral",
+        "after": "neutral"
+      },
+      {
+        "review_text": "Average quality",
+        "label": "neutral",
+        "before": "positive",
+        "after": "positive"
+      },
+      {
+        "review_text": "It is mediocre",
+        "label": "neutral",
+        "before": "positive",
+        "after": "positive"
+      }
+    ],
+    "app": {
+      "n": 24,
+      "accuracy": 0.6666666666666666,
+      "macro_f1": 0.650445632798574,
+      "weighted_f1": 0.650445632798574,
+      "per_class": {
+        "negative": {
+          "precision": 0.6666666666666666,
+          "recall": 0.75,
+          "f1": 0.7058823529411765,
+          "support": 8
+        },
+        "neutral": {
+          "precision": 1.0,
+          "recall": 0.375,
+          "f1": 0.5454545454545454,
+          "support": 8
+        },
+        "positive": {
+          "precision": 0.5833333333333334,
+          "recall": 0.875,
+          "f1": 0.7,
+          "support": 8
+        }
+      },
+      "confusion_matrix": [
+        [
+          6,
+          0,
+          2
+        ],
+        [
+          2,
+          3,
+          3
+        ],
+        [
+          1,
+          0,
+          7
+        ]
+      ],
+      "unavailable_counted_incorrect": 0
+    }
+  }
+}

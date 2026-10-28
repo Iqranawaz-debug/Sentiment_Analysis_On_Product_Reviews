@@ -39,7 +39,9 @@ def presentation_mood(result: dict) -> str:
     """Uncertainty changes Senti's face, never the saved model's decision."""
     if result.get("status") != "ok":
         return "idle"
-    return "unsure" if result["confidence"] < unsure_threshold() else result["label"]
+    if result.get("uncertainty") or result["confidence"] < unsure_threshold():
+        return "unsure"
+    return result["label"]
 
 
 def mood_state(mood: str, confidence: float) -> str:
@@ -54,8 +56,19 @@ def mood_state(mood: str, confidence: float) -> str:
     return mood if mood in MESSAGES else "idle"
 
 
-def render_senti(mood: str, confidence: float, message: str | None = None) -> str:
-    """Return a responsive standalone SVG scene with reduced-motion support."""
+def render_senti(
+    mood: str, confidence: float, message: str | None = None, compact: bool = False
+) -> str:
+    """Return a responsive standalone SVG scene with reduced-motion support.
+
+    `compact` draws a small companion beside results instead of a hero illustration.
+    """
+    size = (
+        "svg{width:min(100%,150px);height:150px;overflow:visible}"
+        ".bubble{font-size:13px;padding:8px 12px !important}.scene{padding:4px !important}"
+        if compact
+        else "svg{width:min(100%,270px);height:265px;overflow:visible}"
+    )
     state = mood_state(mood, confidence)
     base = mood if mood in MESSAGES else "idle"
     bubble = html.escape(message or random.choice(MESSAGES[base]))
@@ -82,7 +95,7 @@ def render_senti(mood: str, confidence: float, message: str | None = None) -> st
     return f'''<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>
     :root{{color-scheme:normal;background:transparent}}body{{margin:0;background:transparent;font:15px system-ui;text-align:center;color:#173e38}}
     .scene{{animation:arrive .35s ease-out;padding:12px 6px}}.bubble{{margin:auto;max-width:300px;padding:14px 18px;border-radius:20px;background:#edf8f2;color:#173e38;border:1px solid #99cbb8;line-height:1.5}}
-    svg{{width:min(100%,270px);height:265px;overflow:visible}}.body{{transform-origin:120px 210px;animation:breathe 3s ease-in-out infinite}}
+    {size}.body{{transform-origin:120px 210px;animation:breathe 3s ease-in-out infinite}}
     .positive .body{{animation:bounce 1s ease-in-out infinite}}.ecstatic .body{{animation:bigbounce .65s ease-in-out infinite}}.negative .body{{animation:sway 2s ease-in-out infinite}}.very-upset .body{{animation:shake .35s ease-in-out infinite}}
     .eyes{{transform-box:fill-box;transform-origin:center;animation:blink 4s infinite}}.tear,.confetti{{animation:fall 1.6s infinite}}.sparkles{{animation:twinkle 1s infinite alternate}}
     @keyframes arrive{{from{{opacity:0;transform:translateY(8px)}}to{{opacity:1;transform:translateY(0)}}}}

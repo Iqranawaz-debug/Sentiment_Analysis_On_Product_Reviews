@@ -36,10 +36,10 @@ It goes beyond a simple *positive / neutral / negative* label: you can inspect c
 | 🔎 **Review Explorer** | Search, filter, sort, and page through reviews, open full details, and export the filtered rows |
 | 📂 **Batch Analysis** | Analyze a selected CSV text column (up to 5,000 rows by default), map optional rating/date/product columns, and export formula-safe results |
 | 🔍 **Explain** | Inspect contributing words using the linear TF-IDF model's score evidence, with optional LIME/fallback |
-| 🎮 **Guess the Mood** | Compare your own guesses with the model on local review examples |
+| 🎮 **Guess the Mood** | A practice game: guess a real review's star-rating sentiment and compare with the model |
 | 📊 **Model & Evaluation** | Examine model information, saved accuracy, macro-F1, a majority baseline, per-class scores, and a confusion matrix |
 | 🕘 **History** | Revisit reviews analyzed in this browser session (not saved to disk) |
-| 🧠 **Optional Deep Mode** | Route lower-confidence Fast predictions through a frozen int8 transformer, once its separately hosted artifact is configured |
+| 🧠 **Optional Deep Mode** | Route lower-confidence Fast predictions through a frozen int8 transformer: better on neutral reviews, worse on negative ones, not better overall (measured below) |
 
 **Recommended showcase:** capture the Review Analyzer with Senti reacting, the Overview with the sample dataset loaded, the Explain panel, and Model & Evaluation. Keep screenshots as demonstrations; use the generated reports for measured model performance.
 
@@ -81,18 +81,18 @@ These are values reported in the existing generated metrics block below—not fr
 
 ## 🎭 Explore the Senti experience
 
-Sidebar navigation (it collapses behind a menu button on phones) leads to eight sections. Fast/Deep Mode is chosen in the sidebar.
+The sidebar groups eight pages as links (Analyze: Overview, Review Analyzer, Review Explorer, Batch Analysis, History; Model: Explain, Model & Evaluation; Practice: Guess the Mood). The active page is highlighted and mirrored in the URL (`?page=model-evaluation`), so pages can be bookmarked. The sidebar collapses behind a menu button on phones. Fast/Deep Mode and the optional Senti companion are chosen in the sidebar; the page header shows the current mode and active dataset.
 
-- **Overview:** KPI cards for the *active dataset*: reviews analyzed, positive/neutral/negative shares (denominator: analyzed rows only), mean predicted-class probability, tentative predictions, Product Mood Score and average rating. Below them: a sentiment distribution chart with a text summary, evidence-based insights that each state their sample size, sentiment over time (only when a real date column is mapped), ratings vs predicted sentiment with star/text disagreements (only when a rating column is mapped), a certainty histogram and the first or most recent reviews.
-- **Review Analyzer** (formerly Live Review): three labelled example buttons, persistent text/results, animated moods, a direction-icon verdict badge, class-colored probabilities, measured processing time and UTC timestamp.
+- **Overview:** KPI cards for the *active dataset*: reviews analyzed, positive/neutral/negative shares (denominator: analyzed rows only), mean predicted-class probability, tentative predictions, Product Mood Score and average rating. Below them: a sentiment distribution chart with a text summary, evidence-based insights that each state their sample size, sentiment over time (only when a real date column is mapped), ratings vs predicted sentiment with star/text disagreements (only when a rating column is mapped), a certainty histogram, the first or most recent reviews, and a data-and-model status panel (records, model version, which evaluations are saved, data warnings). Without dates, the trend panel shows sentiment by category, or by review length, instead. Theme extraction is not implemented, so no themes are shown.
+- **Review Analyzer** (formerly Live Review): review input with Analyze and Clear; three example buttons that only fill the text box; a results panel with separate empty, analyzed, not-analyzed and error states; a direction-icon verdict badge, class-colored probabilities, the decision rule and any uncertainty reasons, model version, mode and measured time; copy-result and report-incorrect actions (feedback is kept with the session's history only); an optional small Senti.
 - **Review Explorer:** literal search, sentiment, minimum-probability, rating, product and date filters that combine; sorting; server-side pagination; a keyboard-accessible detail view with copyable full text; formula-safe export of the filtered rows. Filters survive switching pages.
 - **Batch Analysis** (formerly Bulk Mode): choose any CSV text column, optionally map rating/date/product/ID columns (guessed from common names), preview rows, analyze up to 5,000 rows. Every row is kept with its reason if unreadable. Results become the active dataset and download as a formula-safe CSV that includes `row`, the mapped columns and `message`.
 - **Explain** (formerly Why?): green/red word evidence from coefficient × TF-IDF positive-minus-negative score contributions; optional LIME then bounded leave-one-word-out fallback.
-- **Guess the Mood:** real locally saved reviews with rating-derived labels; independent human/model scoring. Missing samples use 20 clearly marked, unscored examples.
+- **Guess the Mood:** a practice game kept apart from reporting. Guess whether a real locally saved review's star rating was positive, neutral or negative; human and model are scored independently. It measures sentiment, not emotions. Missing samples use 20 clearly marked, unscored examples.
 - **Model & Evaluation** (formerly Model Lab): model information (labels, preprocessing, calibration, versions, training-data provenance, known limitations) plus held-out accuracy, macro F1, majority baseline, bootstrap intervals, confusion heatmap, per-class and per-source results from hash-matched evaluation files.
-- **History:** reviews analyzed in this browser session (server memory only, up to 500, cleared on refresh), searchable, downloadable, clearable, and usable as the active dataset.
+- **History:** reviews analyzed in this browser session (server memory only, up to 500, cleared on refresh). Each entry keeps the model, version and mode that produced it, plus any feedback, so later model changes never rewrite old results. Searchable, with a detail view, per-entry delete, download, clear-all with confirmation, and use as the active dataset.
 
-**Active dataset.** The Overview and Explorer work on one dataset at a time: a scored CSV, this session's history, or the bundled sample. The sample is the 2,698 real Amazon reviews and star ratings in `reports/approved_20261016/test.csv`, scored live with the Fast Mode model. It came from a later experiment's split and may overlap the production model's training data, so it is a demonstration dataset only and is never used to compute accuracy. It has no dates, so trends are shown only for uploads with a mapped date column. Nothing is persisted to disk.
+**Active dataset.** The Overview and Explorer work on one dataset at a time: a scored CSV, this session's history, or the bundled sample. The sample is the 2,698 real Amazon reviews and star ratings in `reports/approved_20261016/test.csv`, scored live with the Fast Mode model. It comes from a later experiment's held-out split that excludes every review in the production model's 30,000-review sample and near-duplicates of them. It has no dates, so trends are shown only for uploads with a mapped date column. Nothing is persisted to disk.
 
 Senti is an original character, built entirely with inline SVG and CSS. It uses no external images, fonts, services or API keys. Animations support reduced motion and light/dark color schemes. The original demonstration remains in `sentix_mascot_app.py` as a visual reference; launch `app.py` for real ML predictions.
 
@@ -112,7 +112,9 @@ Model & Evaluation ── reports/metrics.json (artifact hash checked)
 
 The existing artifact is **three-class calibrated logistic regression on word TF-IDF unigrams/bigrams**. There is no separate vectorizer or label encoder: preprocessing, vocabulary and classes live in the pipeline. Predictions preserve its decision policy. No retraining is needed or performed by the app.
 
-**Honest edge cases:** empty, over-20,000-character, invalid or unknown-vocabulary text returns `label="unavailable"`, null confidence and null probabilities, plus a message. This deliberate extension to the requested schema avoids inventing a neutral prediction. Valid predictions always return all three probabilities. Neutral is learned. Review Analyzer shows an unsure mascot below a configurable predicted-class probability threshold of 0.70 (`SENTIX_UNSURE_THRESHOLD`); this does not change labels or probabilities. Manual edits clear the previous result and require Read the mood; focusing the text area hides the verdict and mascot until editing is submitted. Binary artifacts remain unsupported by the existing validated loader; a future binary adapter would need an explicitly labeled abstention policy, not a fabricated neutral-class probability.
+**Decision rule (2026-10-28).** Sigmoid one-vs-rest calibration re-introduces the training data's 78% positive skew, so the most probable calibrated class flipped some clearly negative short reviews to positive even when the underlying logistic regression ranked negative first (for example "It broke immediately"). Fast Mode now picks `argmax(p_c / prior_c ** 0.3)`. Alpha was chosen on the held-out validation split only, using a rule fixed in advance, then scored once on the held-out test split (2,698 reviews): accuracy 85.58% → 86.40%, macro-F1 0.588 → 0.645, negative recall 0.61 → 0.71, neutral recall 0.11 → 0.23, positive recall 0.976 → 0.956. Paired 95% bootstrap intervals for the change exclude zero. Short reviews got slightly worse (accuracy 89.7% → 87.8%, n = 312). Calibrated probabilities and the model file are unchanged; the rule lives in `models/decision_policy.json`, is bound to the artifact hash, and is reproduced by `python -m scripts.tune_decision_policy` (full results in `reports/decision_policy.json`). Results where the rule changed the label, or where the pre-calibration classifier disagrees, are shown as tentative with the reason. Deep Mode routing is unchanged, because the rule cannot alter any prediction whose top probability is at least 0.80. Known failures that remain: "I hate it" and "Absolutely hate it" (positive, shown as tentative), sarcasm, and mixed opinions.
+
+**Honest edge cases:** empty, over-20,000-character, invalid or unknown-vocabulary text returns `label="unavailable"`, null confidence and null probabilities, plus a message. This deliberate extension to the requested schema avoids inventing a neutral prediction. Valid predictions always return all three probabilities. Neutral is learned. Review Analyzer shows an unsure mascot below a configurable predicted-class probability threshold of 0.70 (`SENTIX_UNSURE_THRESHOLD`); this does not change labels or probabilities. Manual edits clear the previous result and require Analyze review; focusing the text area hides the verdict and mascot until editing is submitted. Binary artifacts remain unsupported by the existing validated loader; a future binary adapter would need an explicitly labeled abstention policy, not a fabricated neutral-class probability.
 
 Set `SENTIX_MAX_ROWS` to change the default 5,000-row batch limit. Files are capped at 10 MB by the app and 5 MB by `.streamlit/config.toml` (`server.maxUploadSize`, which applies first), parsed only through the row limit plus one, and predictions run in chunks. The Product Mood Score is `50 × (1 + positive share − negative share)` among available predictions; unavailable rows are disclosed and excluded. Explanations are partial pre-calibration score contrasts, not probability decompositions; character features and intercepts are omitted, and n-grams are divided among constituent words. Nonlinear fallback explains at most 80 normalized words.
 
@@ -136,7 +138,7 @@ Add a recording at `docs/screenshots/senti-demo.gif` after recording your local 
 
 1. Run the command above and open the displayed localhost URL at a 1280 × 900 window size.
 2. Start Windows Snipping Tool screen recording, selecting only the browser content.
-3. Record idle Senti for two seconds, then click Love, Hate and Meh with three seconds between clicks.
+3. Record idle Senti for two seconds, then load the Praise, Complaint and Lukewarm examples, pressing Analyze review after each, with three seconds between them.
 4. Open Explain and click Explain this review; open Batch Analysis, upload `data/example_reviews.csv`, and click Analyze CSV.
 5. Stop and save the MP4 locally; optionally convert to GIF with `ffmpeg -i senti-demo.mp4 -vf "fps=12,scale=960:-1" docs/screenshots/senti-demo.gif` if FFmpeg is installed.
 6. Add the image link to this section. Record real output; screenshots are demonstrations, not benchmark evidence.
@@ -266,14 +268,16 @@ Reference experiment results on the same 2,698 held-out reviews (316 short revie
 | Int8 transformer alone | 75.87% | 0.5798 | 72.47% | 76.32% | 17/24 | 256.33 | 243.51 |
 | Deep / production hybrid | 84.21% | 0.6489 | 87.34% | 83.80% | 20/24 | 62.15 | 245.22 |
 
-These are warm CPU batch measurements, not single-request latency or deployment
-guarantees. Deep improves macro-F1 and neutral recall but lowers overall accuracy
-and needs much more memory/storage and inference time. The reference hybrid scores
-route saved model probabilities; timing separately executed conditional inference.
-Dynamic int8 quantization and different batch composition can slightly change outputs.
-The Streamlit integration test uses real conditional inference, with a predeclared
-macro-F1 tolerance of 0.005 and a required regression result of 20/24. Its measured
-results are in `reports/deep_mode_e2e/results.json` when that test has completed.
+These reference rows are warm CPU batch measurements from the original experiment.
+
+**Measured in the real app (2026-10-28).** Running the Streamlit Batch Analysis workflow on the same 2,698 held-out reviews showed that batched Deep Mode scores depended on the other reviews in the batch: dynamic int8 quantization takes its scale from the whole padded batch. Probabilities moved by up to 0.25 and labels flipped, so the same review could get different answers in Review Analyzer and Batch Analysis. Deep Mode now scores one review per forward pass (`batch_size` 1, enforced by `load_config`), and the verifier checks that scores are identical alone and together. Both modes were run through the app, with unreadable reviews counted as wrong:
+
+| Mode (live app) | Accuracy | Macro-F1 | Recall neg / neu / pos | Regression | Transformer time |
+|---|---:|---:|---:|---:|---:|
+| Fast, with class-prior decision rule | 86.21% | 0.645 | 0.71 / 0.23 / 0.96 | 16/24 | — |
+| Deep hybrid, batch size 1 | 84.17% | 0.642 | 0.55 / 0.43 / 0.94 | 21/24 | ~107 ms per deferred review (723 of 2,698 deferred) |
+
+Since the Fast decision-rule fix, Deep Mode is **not better overall**: it finds more neutral reviews and handles more of the short curated phrases, but misses more negative reviews and is slower and much larger. The original batch-8 reference (0.6489) was itself batch-dependent and is kept only for transparency. Results: `reports/deep_mode_e2e_20261028_batch1/results.json` (the failed batch-8 run that exposed the problem is kept in `reports/deep_mode_e2e_20261028/`).
 
 The benchmark excludes the production sample and keeps train, calibration,
 validation, and test groups disjoint. Labels remain rating-derived, the test is
@@ -312,6 +316,16 @@ files are deleted. HTTPS-to-HTTP redirects are rejected. Valid cached assets wor
 offline. Network, missing-dependency, checksum, or inference failures visibly fall
 back to the unchanged Fast prediction. No weights or caches are committed to Git
 or included in Docker build context. `SENTIX_DEEP_CACHE` changes the cache location.
+
+#### Using a local copy of the weights (no hosting needed)
+
+If you already have the verified files (the experiment kept them in the ignored `.cache/deep-mode-e2e/` folder), point Deep Mode at them; every file is still SHA-256-checked before loading:
+
+```powershell
+python -m pip install -r requirements.txt -r requirements-deep.txt
+$env:SENTIX_DEEP_CACHE = ".cache/deep-mode-e2e"
+python -m streamlit run app.py
+```
 
 #### Artifact format and attribution
 

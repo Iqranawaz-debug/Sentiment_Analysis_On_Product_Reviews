@@ -1,0 +1,103 @@
+{
+  "test": {
+    "n": 2698,
+    "accuracy": 0.8387694588584136,
+    "macro_f1": 0.6416421761966347,
+    "correct": 2263,
+    "confusion_matrix": [
+      [
+        194,
+        139,
+        48,
+        0
+      ],
+      [
+        24,
+        102,
+        87,
+        0
+      ],
+      [
+        14,
+        118,
+        1967,
+        5
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "confusion_matrix_order": [
+      "negative",
+      "neutral",
+      "positive",
+      "unavailable"
+    ],
+    "unavailable_counted_incorrect": 5,
+    "transformer_rows": 723,
+    "seconds": 97.7082161999997
+  },
+  "regression": {
+    "n": 24,
+    "accuracy": 0.8333333333333334,
+    "macro_f1": 0.832843137254902,
+    "correct": 20,
+    "confusion_matrix": [
+      [
+        7,
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        6,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
+        7,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "confusion_matrix_order": [
+      "negative",
+      "neutral",
+      "positive",
+      "unavailable"
+    ],
+    "unavailable_counted_incorrect": 0,
+    "transformer_rows": 10,
+    "seconds": 0.1218871000000945
+  },
+  "acceptance": {
+    "reference_macro_f1": 0.6489,
+    "absolute_macro_f1_tolerance": 0.005,
+    "required_regression_correct": 20,
+    "macro_f1_pass": false,
+    "regression_pass": true
+  },
+  "production_hashes_before": {
+    "decision_policy.json": "116f4266b5838ab0e4be26889b6d9176792a171354f6480676c83a4299e4e802",
+    "metadata.json": "a89dc5e30cc341d3c3657c2b126dca98348ecd9fee4d6255979d6df29265f62e",
+    "pipeline.joblib": "85edf60258b04b218bde4d4f7c954176454ee7f42ddeb6816985e53fd72617a0"
+  },
+  "production_hashes_after": {
+    "decision_policy.json": "116f4266b5838ab0e4be26889b6d9176792a171354f6480676c83a4299e4e802",
+    "metadata.json": "a89dc5e30cc341d3c3657c2b126dca98348ecd9fee4d6255979d6df29265f62e",
+    "pipeline.joblib": "85edf60258b04b218bde4d4f7c954176454ee7f42ddeb6816985e53fd72617a0"
+  },
+  "artifact_sha256": "dec75d628a2e0d47b3b2dd65d9d695531d375cc297d6747e9406b1ff16e35e95",
+  "download_test": "Local approved artifact staged explicitly; real hosted HTTPS download pending URL. HTTPS download/failure behavior covered by unit tests."
+}

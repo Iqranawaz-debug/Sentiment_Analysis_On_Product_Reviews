@@ -60,7 +60,11 @@ def new_round(reviews: list[dict]) -> None:
 
 
 def render(predictor) -> None:
-    st.subheader("Can you read the mood?")
+    st.subheader("Can you read the sentiment?")
+    st.caption(
+        "A practice game, separate from reporting. Guess whether a real review's star rating "
+        "was positive, neutral or negative. It measures sentiment, not emotions."
+    )
     directory = Path(
         os.environ.get("SENTIMENT_REPORTS_DIR", Path(__file__).resolve().parents[1] / "reports")
     )
@@ -76,14 +80,14 @@ def render(predictor) -> None:
         "One point each for matching the real rating-derived label. Both can score. Unlabeled examples are practice only."
     )
     review = st.session_state.game_review
-    st.write(review["review_text"])
+    st.text(review["review_text"])  # untrusted text: never render as Markdown
     st.caption(
         "Real held-out review"
         if review["true_label"]
         else "Built-in example · no ground truth · unscored"
     )
     for column, (name, label) in zip(
-        st.columns(3), [("Happy", "positive"), ("Neutral", "neutral"), ("Sad", "negative")]
+        st.columns(3), [("Positive", "positive"), ("Neutral", "neutral"), ("Negative", "negative")]
     ):
         if column.button(name, disabled=st.session_state.game_reveal is not None):
             result = predictor.predict(review["review_text"])

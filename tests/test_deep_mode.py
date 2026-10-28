@@ -120,15 +120,28 @@ def test_ui_defaults_fast_and_missing_deep_falls_back(tmp_path, monkeypatch):
         str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=60
     ).run()
     assert app.radio(key="analysis_mode").value == "Fast Mode"
-    app.text_area[0].set_value("Absolutely hate it").run()
-    next(b for b in app.button if b.label == "Read the mood").click().run()
+    app.text_area(key="review").set_value("Absolutely hate it").run()
+    next(b for b in app.button if b.label == "Analyze review").click().run()
     fast = app.session_state.result
     app.radio(key="analysis_mode").set_value("Deep Mode").run()
     assert app.session_state.result is None
-    next(b for b in app.button if b.label == "Read the mood").click().run()
+    next(b for b in app.button if b.label == "Analyze review").click().run()
     assert not app.exception
     assert app.session_state.result["probabilities"] == fast["probabilities"]
     assert app.session_state.result["route"] == "fast_fallback"
     assert any("hosting is pending" in w.value for w in app.warning)
     app.radio(key="analysis_mode").set_value("Fast Mode").run()
     assert app.session_state.result is None
+
+
+def test_deep_mode_scores_one_review_per_pass(tmp_path, monkeypatch):
+    """Batched dynamic-int8 scores depend on neighbouring reviews, so batching is refused."""
+    assert deep.load_config()["runtime"]["batch_size"] == 1
+    config = (deep.ROOT / "configs/deep_mode.json").read_text(encoding="utf-8")
+    (tmp_path / "configs").mkdir()
+    (tmp_path / "configs/deep_mode.json").write_text(
+        config.replace('"batch_size": 1', '"batch_size": 8'), encoding="utf-8"
+    )
+    monkeypatch.setattr(deep, "ROOT", tmp_path)
+    with pytest.raises(deep.DeepModeError, match="one review at a time"):
+        deep.load_config()
