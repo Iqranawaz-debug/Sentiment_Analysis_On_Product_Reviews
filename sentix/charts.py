@@ -40,25 +40,45 @@ def styled(build):
 COUNT_AXIS = alt.Axis(format=",d", tickMinStep=1)
 
 
+PROPORTION_ORDER = ("positive", "neutral", "negative")
+
+
 @styled
-def distribution(table: pd.DataFrame) -> alt.Chart:
-    data = table.assign(text=[f"{c:,} ({s:.1%})" for c, s in zip(table["count"], table.share)])
-    base = alt.Chart(data).encode(
-        y=alt.Y("sentiment:N", sort=list(LABELS)[::-1], title=None),
-        x=alt.X("count:Q", title="Reviews", axis=COUNT_AXIS),
+def proportion(summary: dict) -> alt.Chart:
+    """One 100% bar of the eligible reviews, split by predicted sentiment."""
+    rows, start = [], 0.0
+    for label in PROPORTION_ORDER:
+        share = summary["shares"][label] or 0.0
+        rows.append(
+            {
+                "sentiment": label,
+                "count": summary["counts"][label],
+                "start": start,
+                "end": start + share,
+                "mid": start + share / 2,
+                "share": share,
+                # Labels only where the segment is wide enough to read.
+                "text": f"{summary['percent'][label]:.1f}%" if share >= 0.08 else "",
+            }
+        )
+        start += share
+    data = pd.DataFrame(rows)
+    base = alt.Chart(data)
+    bars = base.mark_bar(height=34, stroke="#FFFFFF", strokeWidth=2).encode(
+        x=alt.X("start:Q", scale=alt.Scale(domain=[0, 1]), axis=None),
+        x2="end:Q",
+        y=alt.value(20),
+        color=alt.Color("sentiment:N", scale=SCALE, legend=None),
         tooltip=[
             alt.Tooltip("sentiment:N", title="Sentiment"),
             alt.Tooltip("count:Q", title="Reviews", format=","),
-            alt.Tooltip("share:Q", title="Share of analyzed", format=".1%"),
+            alt.Tooltip("share:Q", title="Share of eligible", format=".1%"),
         ],
     )
-    bars = base.mark_bar(cornerRadiusEnd=6, height={"band": 0.62}).encode(
-        color=alt.Color("sentiment:N", scale=SCALE, legend=None)
+    labels = base.mark_text(color="#FFFFFF", fontSize=13, fontWeight=700).encode(
+        x="mid:Q", y=alt.value(20), text="text:N"
     )
-    labels = base.mark_text(align="left", dx=6, color=INK, fontSize=12, fontWeight=600).encode(
-        text="text:N"
-    )
-    return (bars + labels).properties(height=150)
+    return (bars + labels).properties(height=40)
 
 
 @styled

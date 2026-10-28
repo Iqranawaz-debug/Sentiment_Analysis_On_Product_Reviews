@@ -38,7 +38,7 @@ def analyze(app, example):
 
 
 def html_text(app):
-    return " ".join(str(e.proto) for e in app.get("html"))
+    return " ".join(e.proto.body for e in app.get("html"))
 
 
 def test_missing_model_screen(monkeypatch, tmp_path):
@@ -58,8 +58,85 @@ def test_every_page_renders_and_nav_marks_the_active_page(app):
             assert app.button(key=f"nav_{slug(other)}").proto.type == expected
         assert app.query_params["page"] == [slug(page)]
     visit(app, "Overview")
-    assert button(app, "Load sample dataset")
-    assert button(app, "No analyzed reviews yet").disabled
+    assert app.button(key="ov_load_sample").proto.type == "primary"
+    assert app.button(key="ov_upload")
+
+
+def test_overview_welcome_card(app):
+    visit(app, "Overview")
+    page = html_text(app)
+    assert "Let's look at some reviews" in page
+    assert page.count('class="welcome-tile"') == 3
+    assert 'alt=""' in page  # the mascot is decorative
+    # No session analyses yet: the optional third route is not shown at all.
+    assert not [b for b in app.button if b.key == "ov_use_history"]
+    assert any("up to 5,000 rows" in c.value for c in app.caption)
+
+
+def test_overview_welcome_upload_opens_batch_analysis(app):
+    visit(app, "Overview")
+    app.button(key="ov_upload").click().run()
+    assert not app.exception
+    assert app.session_state.page == "Batch Analysis"
+    assert app.query_params["page"] == ["batch-analysis"]
+
+
+def test_overview_welcome_loads_sample(app):
+    visit(app, "Overview")
+    app.button(key="ov_load_sample").click().run(timeout=120)
+    assert not app.exception
+    assert app.session_state.dataset_meta["kind"] == "sample"
+    assert len(app.session_state.dataset) == 2698
+    assert "Sentiment distribution" in [h.value for h in app.header]
+    assert not [b for b in app.button if b.key == "ov_load_sample"]
+
+
+def distribution_html(app):
+    return " ".join(
+        e.proto.body for e in app.get("html") if "dist-" in e.proto.body or "live" in e.proto.body
+    )
+
+
+def test_distribution_matches_active_dataset_and_updates(app):
+    analyze(app, COMPLAINT)
+    visit(app, "Overview")
+    app.button(key="ov_load_sample").click().run(timeout=120)
+    frame = app.session_state.dataset
+    ok = frame[frame.status == "ok"]
+    page = distribution_html(app)
+    assert f"Based on {len(ok):,} analyzed reviews" in page
+    assert f"{(frame.status != 'ok').sum():,} unreadable rows excluded" in page
+    for label in ("positive", "neutral", "negative"):
+        count = int((ok.sentiment == label).sum())
+        assert f'<div class="dist-count">{count:,}</div>' in page
+        assert f"<b>{count / len(ok) * 100:.1f}%</b> of {len(ok):,} eligible reviews" in page
+    # The section follows the active dataset: switch to this session's one analysis.
+    visit(app, "History")
+    button(app, "Use as dataset").click().run()
+    visit(app, "Overview")
+    page = distribution_html(app)
+    assert "Based on 1 analyzed review " in page
+    assert '<div class="dist-count">1</div>' in page and "<b>100.0%</b>" in page
+
+
+def test_distribution_with_no_readable_reviews(app):
+    visit(app, "Batch Analysis")
+    app.file_uploader[0].set_value(("blank.csv", b"review_text\n!!!\n12345\n", "text/csv")).run()
+    button(app, "Analyze CSV").click().run()
+    visit(app, "Overview")
+    assert "Based on 0 analyzed reviews" in distribution_html(app)
+    assert any("no distribution to show" in i.value for i in app.info)
+    assert 'class="dist-card' not in distribution_html(app)
+
+
+def test_overview_welcome_offers_session_reviews_once_they_exist(app):
+    analyze(app, PRAISE)
+    visit(app, "Overview")
+    link = app.button(key="ov_use_history")
+    assert link.label == "Or use the 1 review you analyzed this session"
+    link.click().run()
+    assert not app.exception
+    assert app.session_state.dataset_meta["kind"] == "history"
 
 
 def test_bookmarked_page_link_opens_that_page(monkeypatch):

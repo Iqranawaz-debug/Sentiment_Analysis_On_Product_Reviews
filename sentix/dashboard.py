@@ -15,7 +15,7 @@ import streamlit as st
 from sentix import charts
 from sentix import dataset as ds
 from sentix.bulk import analyze
-from sentix.mascot import senti_img, unsure_threshold
+from sentix.mascot import senti_img, svg_image, unsure_threshold
 from sentix.state import go, initial, reset_filters, set_dataset
 from src.predict import export_csv
 
@@ -195,35 +195,153 @@ def empty_state(predictor) -> None:
     )
 
 
+WELCOME_TILES = (
+    ("Sentiment mix", "How many reviews read as positive, neutral or negative."),
+    ("Insights", "Short notes on what stands out, each with the sample size behind it."),
+    ("Ratings and trends", "Stars versus sentiment, plus trends when your data has dates."),
+)
+
+
+def overview_welcome(predictor) -> None:
+    """Overview-only empty state: a welcoming card with the two ways to start.
+
+    Review Explorer keeps `empty_state`; the actions reuse the same handlers.
+    """
+    rows = max(1, int(os.environ.get("SENTIX_MAX_ROWS", "5000")))
+    with st.container(border=True, key="ov_welcome"):
+        art, body = st.columns([1, 2.6], vertical_alignment="center", gap="large")
+        art.html(f'<div class="welcome-art">{senti_img("welcome", 120)}</div>')
+        with body:
+            st.html(
+                '<span class="eyebrow">Get started</span>'
+                '<h2 class="welcome-title">Let\'s look at some reviews</h2>'
+                '<p class="welcome-copy">The overview summarizes a set of reviews scored by '
+                "the sentiment model: the overall mood, what stands out, and how sure the model "
+                "is. Pick a dataset to begin.</p>"
+            )
+            sample, upload = st.columns(2)
+            with sample:
+                if st.button(
+                    "Load sample dataset",
+                    key="ov_load_sample",
+                    type="primary",
+                    icon=":material/dataset:",
+                    width="stretch",
+                ):
+                    load_sample_dataset(predictor)
+                    st.rerun()
+                st.caption("2,698 real Amazon reviews with star ratings, scored when you click.")
+            with upload:
+                st.button(
+                    "Upload a CSV",
+                    key="ov_upload",
+                    icon=":material/upload_file:",
+                    on_click=go,
+                    args=("Batch Analysis",),
+                    width="stretch",
+                )
+                st.caption(f"Use your own reviews, up to {rows:,} rows. Opens Batch Analysis.")
+        st.html(
+            '<div class="welcome-tiles" role="list" aria-label="What you will see">'
+            + "".join(
+                f'<div class="welcome-tile" role="listitem"><strong>{html.escape(title)}</strong>'
+                f"<span>{html.escape(text)}</span></div>"
+                for title, text in WELCOME_TILES
+            )
+            + "</div>"
+        )
+        entries = len(st.session_state.get("history", []))
+        if entries:
+            st.button(
+                f"Or use the {entries} review{'s' if entries != 1 else ''} you analyzed "
+                "this session",
+                key="ov_use_history",
+                type="tertiary",
+                icon=":material/history:",
+                on_click=use_history,
+            )
+
+
+FACES = {
+    # Small faces in the sentiment colours; the label text beside them carries the meaning.
+    "positive": ("#1E7A4C", "M10 18q6 6 12 0"),
+    "neutral": ("#8A5A0B", "M10 19h12"),
+    "negative": ("#B5382B", "M10 21q6-6 12 0"),
+}
+
+
+def face_icon(label: str) -> str:
+    colour, mouth = FACES[label]
+    return svg_image(
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" '
+        f'stroke="{colour}" stroke-width="2.4" stroke-linecap="round">'
+        f'<circle cx="16" cy="16" r="13"/><circle cx="11.5" cy="13" r="1.4" fill="{colour}"/>'
+        f'<circle cx="20.5" cy="13" r="1.4" fill="{colour}"/><path d="{mouth}"/></svg>',
+        "",
+        22,
+    )
+
+
+def distribution_section(summary: dict) -> None:
+    """Live counts and shares of predicted sentiment for the active dataset.
+
+    Recomputed from the active dataset on every run, so it changes with the data.
+    """
+    n = summary["eligible"]
+    excluded = [f"{summary['unreadable']:,} unreadable rows excluded"]
+    if summary["invalid"]:
+        excluded.append(f"{summary['invalid']:,} rows with an unexpected label excluded")
+    with st.container(border=True, key="ov_dist"):
+        st.header("Sentiment distribution")
+        st.html(
+            '<p class="dist-sub"><span class="live" title="Recalculated from the active '
+            'dataset">Live</span>'
+            f"Based on {n:,} analyzed review{'s' if n != 1 else ''} · "
+            f"{html.escape(' · '.join(excluded))}</p>"
+        )
+        if not n:
+            st.info(
+                "No review in this dataset could be analyzed, so there is no distribution to show."
+            )
+            return
+        st.html(
+            '<div class="dist-grid">'
+            + "".join(
+                f'<div class="dist-card {label}"><div class="dist-top">{face_icon(label)}'
+                f'<span class="dist-label">{html.escape(ds.badge(label))}</span></div>'
+                f'<div class="dist-count">{summary["counts"][label]:,}</div>'
+                f'<div class="dist-pct"><b>{summary["percent"][label]:.1f}%</b> of '
+                f"{n:,} eligible reviews</div></div>"
+                for label in charts.PROPORTION_ORDER
+            )
+            + "</div>"
+        )
+        st.altair_chart(charts.proportion(summary), width="stretch")
+        st.caption(
+            "Predicted sentiment of eligible reviews: "
+            + "; ".join(
+                f"{label} {summary['counts'][label]:,} ({summary['percent'][label]:.1f}%)"
+                for label in charts.PROPORTION_ORDER
+            )
+            + ". Labels are the model's predictions, not star ratings."
+            + (
+                " Percentages are rounded to one decimal, so they may not add up to exactly 100%."
+                if summary["rounding_gap"]
+                else ""
+            )
+        )
+
+
 def overview(predictor) -> None:
     frame, meta = active()
     if frame is None:
-        empty_state(predictor)
+        overview_welcome(predictor)
         return
     context(meta, frame)
     low = unsure_threshold()
     stats = ds.kpis(frame, low)
     n = stats["analyzed"]
-    shares = stats["shares"]
-    cards(
-        [
-            (
-                "Reviews analyzed",
-                f"{n:,}",
-                f"of {stats['total']:,} rows; {stats['unavailable']:,} unreadable rows excluded",
-                "info",
-            ),
-            *[
-                (
-                    ds.badge(label),
-                    "—" if shares[label] is None else f"{shares[label]:.1%}",
-                    f"{stats['counts'][label]:,} of {n:,} analyzed reviews",
-                    label,
-                )
-                for label in ("positive", "neutral", "negative")
-            ],
-        ]
-    )
+    distribution_section(ds.sentiment_summary(frame))
     score = stats["mood_score"]
     rating = stats["mean_rating"]
     cards(
@@ -261,22 +379,7 @@ def overview(predictor) -> None:
         ]
     )
 
-    left, right = st.columns([3, 2], gap="large")
-    with left, st.container(border=True):
-        st.header("Sentiment distribution")
-        table_ = ds.distribution(frame)
-        if n:
-            st.altair_chart(charts.distribution(table_), width="stretch")
-            st.caption(
-                "Shares of analyzed reviews: "
-                + "; ".join(
-                    f"{r.sentiment} {r.count:,} ({r.share:.1%})" for r in table_.itertuples()
-                )
-                + "."
-            )
-        else:
-            st.info("No review in this dataset could be analyzed, so there is nothing to chart.")
-    with right, st.container(border=True):
+    with st.container(border=True):
         st.header("Insights")
         insight_list(ds.insights(frame, low))
 

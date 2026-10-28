@@ -216,3 +216,68 @@ def test_sample_dataset_uses_real_model_and_ratings():
 def test_display_text_only_converts_line_break_tags():
     assert ds.display_text("Good.<br /><br />Fast<BR>ok") == "Good.\n\nFast\nok"
     assert ds.display_text("<script>x</script>") == "<script>x</script>"  # still plain text
+
+
+def labelled(labels: list[str], statuses: list[str] | None = None) -> pd.DataFrame:
+    return pd.DataFrame(
+        {"sentiment": labels, "status": statuses or ["ok"] * len(labels)}, dtype=object
+    )
+
+
+@pytest.mark.parametrize(
+    "labels,counts",
+    [
+        (["positive"] * 4, {"negative": 0, "neutral": 0, "positive": 4}),
+        (["neutral"] * 3, {"negative": 0, "neutral": 3, "positive": 0}),
+        (["negative"] * 2, {"negative": 2, "neutral": 0, "positive": 0}),
+        (
+            ["positive", "negative", "neutral", "positive"],
+            {"negative": 1, "neutral": 1, "positive": 2},
+        ),
+    ],
+)
+def test_sentiment_summary_single_class_and_mixed(labels, counts):
+    summary = ds.sentiment_summary(labelled(labels))
+    assert summary["counts"] == counts
+    assert summary["eligible"] == len(labels) == sum(summary["counts"].values())
+    assert sum(summary["shares"].values()) == pytest.approx(1)
+    for label, count in counts.items():
+        assert summary["shares"][label] == pytest.approx(count / len(labels))
+    assert summary["unreadable"] == summary["invalid"] == 0
+
+
+def test_sentiment_summary_excludes_unreadable_and_invalid_labels():
+    frame = labelled(
+        ["positive", "unavailable", "angry", None, "negative"],
+        ["ok", "unavailable", "ok", "ok", "ok"],
+    )
+    summary = ds.sentiment_summary(frame)
+    assert summary["eligible"] == 2 == sum(summary["counts"].values())
+    assert summary["unreadable"] == 1 and summary["invalid"] == 2
+    assert summary["eligible"] + summary["unreadable"] + summary["invalid"] == summary["total"]
+    assert summary["percent"] == {"negative": 50.0, "neutral": 0.0, "positive": 50.0}
+
+
+@pytest.mark.parametrize(
+    "frame",
+    [labelled([]), pd.DataFrame({"review_text": ["x"]}), labelled(["x"], ["unavailable"])],
+)
+def test_sentiment_summary_empty_or_unusable_data(frame):
+    summary = ds.sentiment_summary(frame)
+    assert summary["eligible"] == 0
+    assert all(v is None for v in summary["shares"].values())
+    assert all(v is None for v in summary["percent"].values())
+    assert summary["rounding_gap"] is False
+
+
+def test_sentiment_summary_percentages_match_app_rounding():
+    summary = ds.sentiment_summary(
+        labelled(["positive"] * 2194 + ["neutral"] * 107 + ["negative"] * 392)
+    )
+    # Same values the KPI and insight text show with ":.1%".
+    assert summary["percent"] == {"negative": 14.6, "neutral": 4.0, "positive": 81.5}
+    assert summary["rounding_gap"] is True  # 100.1 after rounding; the UI says so
+    thirds = ds.sentiment_summary(labelled(["positive", "neutral", "negative"]))
+    assert thirds["rounding_gap"] is True  # 33.3 x 3 = 99.9
+    halves = ds.sentiment_summary(labelled(["positive", "negative"]))
+    assert halves["rounding_gap"] is False

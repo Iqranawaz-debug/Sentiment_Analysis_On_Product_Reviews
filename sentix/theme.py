@@ -119,6 +119,40 @@ STYLES = """
   background:var(--mint);margin-bottom:1rem}
 .empty h2{margin:0 0 .3rem;font-size:1.15rem}.empty p{margin:0;color:var(--muted);max-width:60ch}
 .empty img{flex:none}
+
+/* Overview welcome card (empty state); scoped so other empty states are unchanged */
+.stMain .st-key-ov_welcome{background:#FFFDF8;padding:.6rem .4rem .4rem}
+.welcome-art{display:grid;place-items:center;width:156px;height:156px;margin:auto;border-radius:50%;
+  background:radial-gradient(circle at 50% 45%,var(--mint-2),var(--mint) 70%);border:1px solid var(--line)}
+.welcome-art img{display:block}
+.welcome-title{font-size:1.55rem!important;letter-spacing:-.02em;margin:.25rem 0 .4rem!important;padding:0!important;color:var(--ink)}
+.welcome-copy{margin:0 0 .9rem;color:var(--muted);font-size:1rem;max-width:58ch;line-height:1.55}
+.welcome-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.7rem;margin:.4rem 0 .2rem;
+  padding-top:.9rem;border-top:1px solid var(--line)}
+.welcome-tile{background:var(--mint);border:1px solid var(--line);border-radius:var(--r-md);padding:.65rem .85rem}
+.welcome-tile strong{display:block;color:var(--brand-ink);font-size:.9rem;margin-bottom:.15rem}
+.welcome-tile span{color:var(--muted);font-size:.84rem;line-height:1.4}
+.st-key-ov_use_history button{color:var(--brand);font-weight:600}
+
+/* Overview sentiment distribution */
+.dist-sub{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin:-.2rem 0 .9rem;color:var(--muted);font-size:.88rem}
+.live{display:inline-flex;align-items:center;gap:.35rem;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--brand-ink);background:var(--brand-soft);border-radius:var(--r-pill);padding:.12rem .55rem}
+.live::before{content:"";width:.45rem;height:.45rem;border-radius:50%;background:var(--brand);animation:pulse 2s ease-in-out infinite}
+.dist-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.75rem;margin-bottom:.6rem}
+.dist-card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:var(--r-md);
+  padding:.75rem .95rem;transition:box-shadow var(--med) var(--ease),transform var(--med) var(--ease)}
+.dist-card:hover{box-shadow:var(--shadow-hover);transform:translateY(-1px)}
+.dist-card.positive{border-left-color:var(--pos);background:linear-gradient(90deg,var(--pos-bg),var(--surface) 70%)}
+.dist-card.neutral{border-left-color:var(--amber);background:linear-gradient(90deg,var(--neu-bg),var(--surface) 70%)}
+.dist-card.negative{border-left-color:var(--coral);background:linear-gradient(90deg,var(--neg-bg),var(--surface) 70%)}
+.dist-top{display:flex;align-items:center;gap:.45rem}.dist-top img{display:block}
+.dist-label{font-weight:650;font-size:.9rem;color:var(--ink)}
+.dist-card.positive .dist-label{color:var(--pos-fg)}.dist-card.neutral .dist-label{color:var(--neu-fg)}
+.dist-card.negative .dist-label{color:var(--neg-fg)}
+.dist-count{font-size:1.75rem;font-weight:700;color:var(--ink);letter-spacing:-.02em;margin:.2rem 0 .05rem;font-variant-numeric:tabular-nums}
+.dist-pct{font-size:.84rem;color:var(--muted)}.dist-pct b{color:var(--ink);font-variant-numeric:tabular-nums}
+@keyframes pulse{50%{opacity:.35}}
 .insights{list-style:none;margin:0;padding:0;display:grid;gap:.75rem}
 .insights li{border-left:3px solid var(--brand);padding:.1rem 0 .1rem .75rem}
 .insights strong{display:block;color:var(--ink);font-size:.93rem}.insights span{color:var(--muted);font-size:.86rem;line-height:1.45}
@@ -137,7 +171,9 @@ STYLES = """
 @keyframes rise{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 @media(max-width:640px){.page-head h1{font-size:1.5rem}.block-container{padding-left:1rem;padding-right:1rem}
   .facts{grid-template-columns:1fr}.facts dd{margin-bottom:.4rem}.kpi-value{font-size:1.4rem}
-  .chips{justify-content:flex-start}.empty{flex-direction:column;align-items:flex-start}}
+  .chips{justify-content:flex-start}.empty{flex-direction:column;align-items:flex-start}
+  .welcome-art{width:120px;height:120px}.welcome-art img{width:92px;height:92px}
+  .welcome-title{font-size:1.3rem!important}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 """
 

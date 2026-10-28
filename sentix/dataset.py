@@ -148,6 +148,47 @@ def kpis(frame: pd.DataFrame, low_threshold: float) -> dict:
     return result
 
 
+def sentiment_summary(frame: pd.DataFrame) -> dict:
+    """Counts and shares of the model's predicted labels over eligible rows.
+
+    Eligible means the model read the review (status "ok") and returned one of the
+    three known labels. Everything else is counted as excluded, never dropped silently,
+    so the three counts always sum to `eligible`. Percentages use ordinary rounding to
+    one decimal, matching the rest of the app; `rounding_gap` reports when the rounded
+    values do not add to exactly 100.0.
+    """
+    total = len(frame)
+    if total == 0 or not {"status", "sentiment"} <= set(frame.columns):
+        return {
+            "total": total,
+            "eligible": 0,
+            "unreadable": total,
+            "invalid": 0,
+            "counts": dict.fromkeys(LABELS, 0),
+            "shares": dict.fromkeys(LABELS),
+            "percent": dict.fromkeys(LABELS),
+            "rounding_gap": False,
+        }
+    read = frame.status == "ok"
+    known = frame.sentiment.isin(LABELS)
+    eligible = frame[read & known]
+    counts = {label: int((eligible.sentiment == label).sum()) for label in LABELS}
+    n = sum(counts.values())
+    shares = {label: (counts[label] / n if n else None) for label in LABELS}
+    # Format-based rounding matches the ":.1%" used by KPIs and insights elsewhere.
+    percent = {label: (float(f"{s * 100:.1f}") if n else None) for label, s in shares.items()}
+    return {
+        "total": total,
+        "eligible": n,
+        "unreadable": int((~read).sum()),
+        "invalid": int((read & ~known).sum()),
+        "counts": counts,
+        "shares": shares,
+        "percent": percent,
+        "rounding_gap": bool(n) and round(sum(percent.values()), 1) != 100.0,
+    }
+
+
 def distribution(frame: pd.DataFrame) -> pd.DataFrame:
     ok = frame[frame.status == "ok"]
     counts = ok.sentiment.value_counts().reindex(LABELS, fill_value=0)
