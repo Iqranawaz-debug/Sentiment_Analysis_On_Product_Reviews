@@ -119,16 +119,16 @@ def test_ui_defaults_fast_and_missing_deep_falls_back(tmp_path, monkeypatch):
     app = AppTest.from_file(
         str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=60
     ).run()
-    assert app.radio[0].value == "Fast Mode"
+    assert app.radio(key="analysis_mode").value == "Fast Mode"
     app.text_area[0].set_value("Absolutely hate it").run()
     next(b for b in app.button if b.label == "Read the mood").click().run()
     fast = app.session_state.result
-    app.radio[0].set_value("Deep Mode").run()
+    app.radio(key="analysis_mode").set_value("Deep Mode").run()
     assert app.session_state.result is None
     next(b for b in app.button if b.label == "Read the mood").click().run()
     assert not app.exception
     assert app.session_state.result["probabilities"] == fast["probabilities"]
     assert app.session_state.result["route"] == "fast_fallback"
     assert any("hosting is pending" in w.value for w in app.warning)
-    app.radio[0].set_value("Fast Mode").run()
+    app.radio(key="analysis_mode").set_value("Fast Mode").run()
     assert app.session_state.result is None
